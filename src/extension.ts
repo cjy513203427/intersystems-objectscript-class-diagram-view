@@ -3,41 +3,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-  let disposable = vscode.commands.registerCommand('intersystems-objectscript-class-diagram-view.generateClassDiagram', () => {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-	  vscode.window.showInformationMessage('Scanning folders');
-      const rootPath = workspaceFolders[0].uri.fsPath;
-      scanDirectory(rootPath);
+  let disposable = vscode.commands.registerCommand('intersystems-objectscript-class-diagram-view.generateClassDiagram', (uri: vscode.Uri) => {
+    if (uri && uri.fsPath.endsWith('.cls')) {
+      vscode.window.showInformationMessage('Generating class diagram for ' + uri.fsPath);
+      parseObjectScriptFile(uri.fsPath);
     } else {
-      vscode.window.showInformationMessage('No workspace folder open');
+      vscode.window.showInformationMessage('Please select a .cls file');
     }
   });
 
   context.subscriptions.push(disposable);
-}
-
-function scanDirectory(dir: string) {
-  fs.readdir(dir, (err, files) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    files.forEach(file => {
-      const filePath = path.join(dir, file);
-      fs.stat(filePath, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        if (stats.isDirectory()) {
-          scanDirectory(filePath);
-        } else if (filePath.endsWith('.cls')) {
-          parseObjectScriptFile(filePath);
-        }
-      });
-    });
-  });
 }
 
 function parseObjectScriptFile(filePath: string) {

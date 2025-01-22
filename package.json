@@ -9,7 +9,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:objectscript",
+    "onFileSystem:cls"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -17,7 +20,23 @@
         "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
         "title": "Generate Class Diagram"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
+          "when": "resourceExtname == .cls",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
+          "when": "resourceExtname == .cls",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
