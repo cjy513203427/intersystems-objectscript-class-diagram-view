@@ -1,6 +1,6 @@
 # intersystems-objectscript-class-diagram-view README
 
-This is the README for your extension "intersystems-objectscript-class-diagram-view". After writing up a brief description, we recommend including the following sections.
+This is the READMe for your extension "intersystems-objectscript-class-diagram-view". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 
