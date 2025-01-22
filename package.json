@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "intersystems-objectscript-class-diagram-view.helloWorld",
-        "title": "Hello World"
+        "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
+        "title": "Generate Class Diagram"
       }
     ]
   },
