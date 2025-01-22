@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand('intersystems-objectscript-class-diagram-view.generateClassDiagram', (uri: vscode.Uri) => {
@@ -62,7 +61,18 @@ class ${className} {
       console.error(err);
     } else {
       vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
+      exportPng(umlFilePath);
     }
+  });
+}
+
+function exportPng(umlFilePath: string) {
+  const pngFilePath = umlFilePath.replace('.puml', '.png');
+  vscode.commands.executeCommand('plantuml.exportWorkspace', vscode.Uri.file(umlFilePath)).then(() => {
+    vscode.window.showInformationMessage(`PNG file generated: ${pngFilePath}`);
+  }, (err) => {
+    console.error(err);
+    vscode.window.showErrorMessage(`Failed to generate PNG file: ${err}`);
   });
 }
 
