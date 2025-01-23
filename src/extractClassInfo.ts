@@ -15,6 +15,13 @@ export function extractSuperClasses(data: string): string[] {
       return superClassParts[superClassParts.length - 1].replace(/[^a-zA-Z0-9_]/g, ''); // delete special characters
     });
   }
+  const singleMatch = data.match(/Class [\w.]+ Extends ([\w.]+)/);
+  if (singleMatch) {
+    return singleMatch[1].split(',').map(superClass => {
+      const superClassParts = superClass.trim().split('.');
+      return superClassParts[superClassParts.length - 1].replace(/[^a-zA-Z0-9_]/g, ''); // delete special characters
+    });
+  }
   return [];
 }
 
@@ -38,8 +45,7 @@ export function extractMethods(data: string): string[] {
     const methodMatch = m.match(/Method (\w+)\(([^)]*)\)/);
     if (methodMatch) {
       const methodName = methodMatch[1];
-      const params = methodMatch[2].split(',').map(p => p.trim()).join(', ');
-      return `${methodName}(${params})`;
+      return `${methodName}()`;
     }
     return '';
   }) : [];

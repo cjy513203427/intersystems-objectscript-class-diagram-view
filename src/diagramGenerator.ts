@@ -33,7 +33,7 @@ function generateUmlFile(filePath: string, className: string, superClasses: stri
 ${superClasses.map(superClass => `class ${superClass} {\n}\n`).join('')}
 class ${className} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
-  ${methods.map(method => `+ ${method}()`).join('\n  ')}
+  ${methods.map(method => `+ ${method}`).join('\n  ')}
 }
 ${superClasses.map(superClass => `${superClass} <|-- ${className}`).join('\n')}
 @enduml
