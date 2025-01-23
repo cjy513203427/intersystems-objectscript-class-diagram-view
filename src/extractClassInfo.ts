@@ -8,8 +8,11 @@ export function extractClassName(data: string): string {
   }
   
   export function extractAttributes(data: string): string[] {
-    const matches = data.match(/Property (\w+)/g);
-    return matches ? matches.map(m => m.split(' ')[1]) : [];
+    const propertyMatches = data.match(/Property (\w+)/g);
+    const parameterMatches = data.match(/Parameter (\w+)/g);
+    const properties = propertyMatches ? propertyMatches.map(m => m.split(' ')[1]) : [];
+    const parameters = parameterMatches ? parameterMatches.map(m => m.split(' ')[1]) : [];
+    return [...properties, ...parameters];
   }
   
   export function extractMethods(data: string): string[] {
