@@ -28,14 +28,17 @@ function parseObjectScriptFile(filePath: string) {
 }
 
 function generateUmlFile(filePath: string, className: string, superClasses: string[], attributes: string[], methods: string[]) {
+  const sanitizedClassName = className.replace(/\./g, '_');
+  const sanitizedSuperClasses = superClasses.map(superClass => superClass.replace(/\./g, '_'));
+  
   const umlContent = `
 @startuml
-${superClasses.map(superClass => `class ${superClass} {\n}\n`).join('')}
-class ${className} {
+${sanitizedSuperClasses.map(superClass => `class ${superClass} {\n}\n`).join('')}
+class ${sanitizedClassName} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
   ${methods.map(method => `+ ${method}`).join('\n  ')}
 }
-${superClasses.map(superClass => `${superClass} <|-- ${className}`).join('\n')}
+${sanitizedSuperClasses.map(superClass => `${superClass} <|-- ${sanitizedClassName}`).join('\n')}
 @enduml
   `;
   const umlFilePath = filePath.replace('.cls', '.puml');

@@ -1,8 +1,7 @@
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
   if (match) {
-    const classNameParts = match[1].split('.');
-    return classNameParts[classNameParts.length - 1];
+    return match[1].replace(/\./g, '_');
   }
   return 'UnknownClass';
 }
@@ -10,17 +9,11 @@ export function extractClassName(data: string): string {
 export function extractSuperClasses(data: string): string[] {
   const match = data.match(/Class [\w.]+ Extends \(([^)]+)\)/);
   if (match) {
-    return match[1].split(',').map(superClass => {
-      const superClassParts = superClass.trim().split('.');
-      return superClassParts[superClassParts.length - 1].replace(/[^a-zA-Z0-9_]/g, ''); // delete special characters
-    });
+    return match[1].split(',').map(superClass => superClass.trim().replace(/%/g, '').replace(/\./g, '_'));
   }
-  const singleMatch = data.match(/Class [\w.]+ Extends ([\w.]+)/);
+  const singleMatch = data.match(/Class [\w.]+ Extends ([\w.%]+)/);
   if (singleMatch) {
-    return singleMatch[1].split(',').map(superClass => {
-      const superClassParts = superClass.trim().split('.');
-      return superClassParts[superClassParts.length - 1].replace(/[^a-zA-Z0-9_]/g, ''); // delete special characters
-    });
+    return [singleMatch[1].trim().replace(/%/g, '').replace(/\./g, '_')];
   }
   return [];
 }
