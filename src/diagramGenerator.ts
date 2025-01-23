@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractAttributes, extractMethods } from './extractClassInfo';
+import { extractClassName, extractSuperClasses, extractAttributes, extractMethods } from './extractClassInfo';
 
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
@@ -20,19 +20,22 @@ function parseObjectScriptFile(filePath: string) {
       return;
     }
     const className = extractClassName(data);
+    const superClasses = extractSuperClasses(data);
     const attributes = extractAttributes(data);
     const methods = extractMethods(data);
-    generateUmlFile(filePath, className, attributes, methods);
+    generateUmlFile(filePath, className, superClasses, attributes, methods);
   });
 }
 
-function generateUmlFile(filePath: string, className: string, attributes: string[], methods: string[]) {
+function generateUmlFile(filePath: string, className: string, superClasses: string[], attributes: string[], methods: string[]) {
   const umlContent = `
 @startuml
+${superClasses.map(superClass => `class ${superClass} {\n}\n`).join('')}
 class ${className} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
   ${methods.map(method => `+ ${method}()`).join('\n  ')}
 }
+${superClasses.map(superClass => `${superClass} <|-- ${className}`).join('\n')}
 @enduml
   `;
   const umlFilePath = filePath.replace('.cls', '.puml');
