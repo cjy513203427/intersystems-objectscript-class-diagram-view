@@ -63,36 +63,49 @@ export function extractMethods(data: string): string[] {
 }
 
 function parseObjectScriptFile(filePath: string) {
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    const className = extractClassName(data);
-    const superClasses = extractSuperClasses(data);
-    inheritanceMap[className] = superClasses;
+  return new Promise<void>((resolve, reject) => {
+    fs.readFile(filePath, 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+        return;
+      }
+      const className = extractClassName(data);
+      const superClasses = extractSuperClasses(data);
+      inheritanceMap[className] = superClasses;
+      resolve();
+    });
   });
 }
 
-export function scanDirectory(dir: string) {
-  fs.readdir(dir, (err, files) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    files.forEach(file => {
-      const filePath = path.join(dir, file);
-      fs.stat(filePath, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        if (stats.isDirectory()) {
-          scanDirectory(filePath);
-        } else if (filePath.endsWith('.cls')) {
-          parseObjectScriptFile(filePath);
-        }
+export function scanDirectory(dir: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    fs.readdir(dir, (err, files) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+        return;
+      }
+      const promises = files.map(file => {
+        const filePath = path.join(dir, file);
+        return new Promise<void>((resolve, reject) => {
+          fs.stat(filePath, (err, stats) => {
+            if (err) {
+              console.error(err);
+              reject(err);
+              return;
+            }
+            if (stats.isDirectory()) {
+              scanDirectory(filePath).then(resolve).catch(reject);
+            } else if (filePath.endsWith('.cls')) {
+              parseObjectScriptFile(filePath).then(resolve).catch(reject);
+            } else {
+              resolve();
+            }
+          });
+        });
       });
+      Promise.all(promises).then(() => resolve()).catch(reject);
     });
   });
 }

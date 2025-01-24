@@ -7,8 +7,11 @@ import { extractClassName, extractSuperClasses, extractAttributes, extractMethod
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
     vscode.window.showInformationMessage('Generating class diagram for ' + uri.fsPath);
-    scanDirectory(path.dirname(uri.fsPath)); // Scan the directory to build the inheritance map
-    parseObjectScriptFile(uri.fsPath);
+    scanDirectory(path.dirname(uri.fsPath)).then(() => {
+      parseObjectScriptFile(uri.fsPath);
+    }).catch(err => {
+      vscode.window.showErrorMessage('Failed to scan directory: ' + err);
+    });
   } else {
     vscode.window.showInformationMessage('Please select a .cls file');
   }
