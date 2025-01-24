@@ -1,3 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
+const inheritanceMap: { [key: string]: string[] } = {};
+
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
   if (match) {
@@ -55,4 +60,56 @@ export function extractMethods(data: string): string[] {
     }
     return '';
   }) : [];
+}
+
+function parseObjectScriptFile(filePath: string) {
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    const className = extractClassName(data);
+    const superClasses = extractSuperClasses(data);
+    inheritanceMap[className] = superClasses;
+  });
+}
+
+export function scanDirectory(dir: string) {
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        if (stats.isDirectory()) {
+          scanDirectory(filePath);
+        } else if (filePath.endsWith('.cls')) {
+          parseObjectScriptFile(filePath);
+        }
+      });
+    });
+  });
+}
+
+export function getAllSuperClasses(className: string): string[] {
+  const superClasses = inheritanceMap[className] || [];
+  const allSuperClasses = new Set<string>();
+
+  function addSuperClasses(classes: string[]) {
+    classes.forEach(cls => {
+      if (!allSuperClasses.has(cls)) {
+        allSuperClasses.add(cls);
+        addSuperClasses(inheritanceMap[cls] || []);
+      }
+    });
+  }
+
+  addSuperClasses(superClasses);
+  return Array.from(allSuperClasses);
 }

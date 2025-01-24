@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractSuperClasses, extractAttributes, extractMethods } from './extractClassInfo';
+import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses } from './extractClassInfo';
 
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
     vscode.window.showInformationMessage('Generating class diagram for ' + uri.fsPath);
+    scanDirectory(path.dirname(uri.fsPath)); // Scan the directory to build the inheritance map
     parseObjectScriptFile(uri.fsPath);
   } else {
     vscode.window.showInformationMessage('Please select a .cls file');
@@ -20,7 +21,7 @@ function parseObjectScriptFile(filePath: string) {
       return;
     }
     const className = extractClassName(data);
-    const superClasses = extractSuperClasses(data);
+    const superClasses = getAllSuperClasses(className); // Get all super classes recursively
     const attributes = extractAttributes(data);
     const methods = extractMethods(data);
     generateUmlFile(filePath, className, superClasses, attributes, methods);
@@ -33,14 +34,15 @@ function generateUmlFile(filePath: string, className: string, superClasses: stri
   
   const umlContent = `
 @startuml
-${sanitizedSuperClasses.map(superClass => `class ${superClass} {\n}\n`).join('')}
+${generateClassDefinitions(sanitizedSuperClasses)}
 class ${sanitizedClassName} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
   ${methods.map(method => `+ ${method}`).join('\n  ')}
 }
-${sanitizedSuperClasses.map(superClass => `${superClass} <|-- ${sanitizedClassName}`).join('\n')}
+${generateInheritanceRelations(sanitizedClassName, sanitizedSuperClasses)}
 @enduml
   `;
+
   const umlFilePath = filePath.replace('.cls', '.puml');
   fs.writeFile(umlFilePath, umlContent, (err) => {
     if (err) {
@@ -50,6 +52,41 @@ ${sanitizedSuperClasses.map(superClass => `${superClass} <|-- ${sanitizedClassNa
       exportPng(umlFilePath);
     }
   });
+}
+
+function generateClassDefinitions(superClasses: string[]): string {
+  const classDefinitions = new Set<string>();
+  superClasses.forEach(superClass => {
+    classDefinitions.add(`class ${superClass} {\n}\n`);
+  });
+  return Array.from(classDefinitions).join('');
+}
+
+function generateInheritanceRelations(className: string, superClasses: string[]): string {
+  const inheritanceRelations = new Set<string>();
+
+  function addInheritanceRelations(currentClass: string, superClasses: string[]) {
+    superClasses.forEach(superClass => {
+      const relation = `${superClass} <|-- ${currentClass}`;
+      if (!inheritanceRelations.has(relation)) {
+        inheritanceRelations.add(relation);
+        addInheritanceRelations(superClass, getAllSuperClasses(superClass));
+      }
+    });
+  }
+
+  addInheritanceRelations(className, superClasses);
+
+  // Filter out redundant relations
+  const filteredRelations = new Set<string>();
+  inheritanceRelations.forEach(relation => {
+    const [superClass, subClass] = relation.split(' <|-- ');
+    if (!Array.from(inheritanceRelations).some(r => r.startsWith(`${superClass} <|--`) && r !== relation && r.endsWith(` <|-- ${subClass}`))) {
+      filteredRelations.add(relation);
+    }
+  });
+
+  return Array.from(filteredRelations).join('\n');
 }
 
 function exportPng(umlFilePath: string) {
