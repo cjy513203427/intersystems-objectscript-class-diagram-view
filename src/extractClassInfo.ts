@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export const inheritanceMap: { [key: string]: string[] } = {};
+export const classContentMap: { [key: string]: string } = {};
 
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
@@ -73,6 +74,7 @@ function parseObjectScriptFile(filePath: string) {
       const className = extractClassName(data);
       const superClasses = extractSuperClasses(data);
       inheritanceMap[className] = superClasses;
+      classContentMap[className] = data; // Store the class content
       resolve();
     });
   });
@@ -125,4 +127,8 @@ export function getAllSuperClasses(className: string): string[] {
 
   addSuperClasses(superClasses);
   return Array.from(allSuperClasses);
+}
+
+export function getClassContent(className: string): string {
+  return classContentMap[className] || '';
 }

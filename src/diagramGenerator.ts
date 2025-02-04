@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap } from './extractClassInfo';
+import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap, getClassContent } from './extractClassInfo';
 
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
@@ -26,28 +26,45 @@ function parseObjectScriptFile(filePath: string) {
     const className = extractClassName(data);
     const allRelatedClasses = getAllSuperClasses(className); // Get all related parent classes
     const classHierarchy = new Map<string, string[]>();
+    const classAttributes = new Map<string, string[]>();
+    const classMethods = new Map<string, string[]>();
     
     // Get direct parent classes for each related class
     [className, ...allRelatedClasses].forEach(cls => {
       classHierarchy.set(cls, inheritanceMap[cls] || []);
+      
+      // Extract attributes and methods for each class
+      const classContent = getClassContent(cls);
+      if (classContent) {
+        classAttributes.set(cls, extractAttributes(classContent));
+        classMethods.set(cls, extractMethods(classContent));
+      }
     });
     
-    const attributes = extractAttributes(data);
-    const methods = extractMethods(data);
-    generateUmlFile(filePath, className, Array.from(classHierarchy.entries()), attributes, methods);
+    // Extract attributes and methods for the current class
+    classAttributes.set(className, extractAttributes(data));
+    classMethods.set(className, extractMethods(data));
+    
+    generateUmlFile(filePath, className, Array.from(classHierarchy.entries()), classAttributes, classMethods);
   });
 }
 
-function generateUmlFile(filePath: string, className: string, classHierarchy: [string, string[]][], attributes: string[], methods: string[]) {
+function generateUmlFile(
+  filePath: string, 
+  className: string, 
+  classHierarchy: [string, string[]][], 
+  classAttributes: Map<string, string[]>,
+  classMethods: Map<string, string[]>
+) {
   const sanitizedClassName = className.replace(/\./g, '_');
   const allClasses = new Set(classHierarchy.flatMap(([cls, parents]) => [cls, ...parents]));
   
   const umlContent = `
 @startuml
-${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== sanitizedClassName))}
+${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== sanitizedClassName), classAttributes, classMethods)}
 class ${sanitizedClassName} {
-  ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
-  ${methods.map(method => `+ ${method}`).join('\n  ')}
+  ${(classAttributes.get(className) || []).map(attr => `+ ${attr}`).join('\n  ')}
+  ${(classMethods.get(className) || []).map(method => `+ ${method}`).join('\n  ')}
 }
 ${generateInheritanceRelations(classHierarchy)}
 @enduml
@@ -64,10 +81,19 @@ ${generateInheritanceRelations(classHierarchy)}
   });
 }
 
-function generateClassDefinitions(classes: string[]): string {
+function generateClassDefinitions(
+  classes: string[], 
+  classAttributes: Map<string, string[]>,
+  classMethods: Map<string, string[]>
+): string {
   const classDefinitions = new Set<string>();
   classes.forEach(className => {
-    classDefinitions.add(`class ${className} {\n}\n`);
+    const attributes = classAttributes.get(className) || [];
+    const methods = classMethods.get(className) || [];
+    classDefinitions.add(`class ${className} {
+  ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
+  ${methods.map(method => `+ ${method}`).join('\n  ')}
+}\n`);
   });
   return Array.from(classDefinitions).join('');
 }
