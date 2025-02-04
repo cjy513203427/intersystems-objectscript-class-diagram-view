@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses } from './extractClassInfo';
+import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap } from './extractClassInfo';
 
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
@@ -24,25 +24,32 @@ function parseObjectScriptFile(filePath: string) {
       return;
     }
     const className = extractClassName(data);
-    const superClasses = getAllSuperClasses(className); // Get all super classes recursively
+    const allRelatedClasses = getAllSuperClasses(className); // Get all related parent classes
+    const classHierarchy = new Map<string, string[]>();
+    
+    // Get direct parent classes for each related class
+    [className, ...allRelatedClasses].forEach(cls => {
+      classHierarchy.set(cls, inheritanceMap[cls] || []);
+    });
+    
     const attributes = extractAttributes(data);
     const methods = extractMethods(data);
-    generateUmlFile(filePath, className, superClasses, attributes, methods);
+    generateUmlFile(filePath, className, Array.from(classHierarchy.entries()), attributes, methods);
   });
 }
 
-function generateUmlFile(filePath: string, className: string, superClasses: string[], attributes: string[], methods: string[]) {
+function generateUmlFile(filePath: string, className: string, classHierarchy: [string, string[]][], attributes: string[], methods: string[]) {
   const sanitizedClassName = className.replace(/\./g, '_');
-  const sanitizedSuperClasses = superClasses.map(superClass => superClass.replace(/\./g, '_'));
+  const allClasses = new Set(classHierarchy.flatMap(([cls, parents]) => [cls, ...parents]));
   
   const umlContent = `
 @startuml
-${generateClassDefinitions(sanitizedSuperClasses)}
+${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== sanitizedClassName))}
 class ${sanitizedClassName} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
   ${methods.map(method => `+ ${method}`).join('\n  ')}
 }
-${generateInheritanceRelations(sanitizedClassName, sanitizedSuperClasses)}
+${generateInheritanceRelations(classHierarchy)}
 @enduml
   `;
 
@@ -57,39 +64,22 @@ ${generateInheritanceRelations(sanitizedClassName, sanitizedSuperClasses)}
   });
 }
 
-function generateClassDefinitions(superClasses: string[]): string {
+function generateClassDefinitions(classes: string[]): string {
   const classDefinitions = new Set<string>();
-  superClasses.forEach(superClass => {
-    classDefinitions.add(`class ${superClass} {\n}\n`);
+  classes.forEach(className => {
+    classDefinitions.add(`class ${className} {\n}\n`);
   });
   return Array.from(classDefinitions).join('');
 }
 
-function generateInheritanceRelations(className: string, superClasses: string[]): string {
-  const inheritanceRelations = new Set<string>();
-
-  function addInheritanceRelations(currentClass: string, superClasses: string[]) {
-    superClasses.forEach(superClass => {
-      const relation = `${superClass} <|-- ${currentClass}`;
-      if (!inheritanceRelations.has(relation)) {
-        inheritanceRelations.add(relation);
-        addInheritanceRelations(superClass, getAllSuperClasses(superClass));
-      }
+function generateInheritanceRelations(classHierarchy: [string, string[]][]): string {
+  const relations = new Set<string>();
+  classHierarchy.forEach(([cls, parents]) => {
+    parents.forEach(parent => {
+      relations.add(`${parent} <|-- ${cls}`);
     });
-  }
-
-  addInheritanceRelations(className, superClasses);
-
-  // Filter out redundant relations
-  const filteredRelations = new Set<string>();
-  inheritanceRelations.forEach(relation => {
-    const [superClass, subClass] = relation.split(' <|-- ');
-    if (!Array.from(inheritanceRelations).some(r => r.startsWith(`${superClass} <|--`) && r !== relation && r.endsWith(` <|-- ${subClass}`))) {
-      filteredRelations.add(relation);
-    }
   });
-
-  return Array.from(filteredRelations).join('\n');
+  return Array.from(relations).join('\n');
 }
 
 function exportPng(umlFilePath: string) {

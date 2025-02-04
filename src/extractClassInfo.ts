@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const inheritanceMap: { [key: string]: string[] } = {};
+export const inheritanceMap: { [key: string]: string[] } = {};
 
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
