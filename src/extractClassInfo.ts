@@ -3,6 +3,7 @@ import * as path from 'path';
 
 export const inheritanceMap: { [key: string]: string[] } = {};
 export const classContentMap: { [key: string]: string } = {};
+export const abstractClassMap: { [key: string]: boolean } = {};
 
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
@@ -63,6 +64,16 @@ export function extractMethods(data: string): string[] {
   }) : [];
 }
 
+export function isAbstractClass(data: string): boolean {
+  // Match all possible class definition patterns
+  const classDefMatch = data.match(/Class [\w.]+ Extends [^[{]+ \[(.*?)\]/);
+  if (classDefMatch) {
+    const attributes = classDefMatch[1].split(',').map(attr => attr.trim());
+    return attributes.includes('Abstract');
+  }
+  return false;
+}
+
 function parseObjectScriptFile(filePath: string) {
   return new Promise<void>((resolve, reject) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
@@ -74,7 +85,8 @@ function parseObjectScriptFile(filePath: string) {
       const className = extractClassName(data);
       const superClasses = extractSuperClasses(data);
       inheritanceMap[className] = superClasses;
-      classContentMap[className] = data; // Store the class content
+      classContentMap[className] = data;
+      abstractClassMap[className] = isAbstractClass(data); // Store whether the class is abstract
       resolve();
     });
   });

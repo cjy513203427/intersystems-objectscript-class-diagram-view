@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap, getClassContent } from './extractClassInfo';
+import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap, getClassContent, abstractClassMap } from './extractClassInfo';
 
 export function generateClassDiagram(uri: vscode.Uri) {
   if (uri && uri.fsPath.endsWith('.cls')) {
@@ -58,11 +58,12 @@ function generateUmlFile(
 ) {
   const sanitizedClassName = className.replace(/\./g, '_');
   const allClasses = new Set(classHierarchy.flatMap(([cls, parents]) => [cls, ...parents]));
+  const isAbstract = abstractClassMap[className];
   
   const umlContent = `
 @startuml
 ${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== sanitizedClassName), classAttributes, classMethods)}
-class ${sanitizedClassName} {
+${isAbstract ? 'abstract ' : ''}class ${sanitizedClassName} {
   ${(classAttributes.get(className) || []).map(attr => `+ ${attr}`).join('\n  ')}
   ${(classMethods.get(className) || []).map(method => `+ ${method}`).join('\n  ')}
 }
@@ -90,7 +91,8 @@ function generateClassDefinitions(
   classes.forEach(className => {
     const attributes = classAttributes.get(className) || [];
     const methods = classMethods.get(className) || [];
-    classDefinitions.add(`class ${className} {
+    const isAbstract = abstractClassMap[className];
+    classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class ${className} {
   ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
   ${methods.map(method => `+ ${method}`).join('\n  ')}
 }\n`);
