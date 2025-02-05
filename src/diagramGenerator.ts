@@ -2,146 +2,85 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { extractClassName, extractSuperClasses, extractAttributes, extractMethods, scanDirectory, getAllSuperClasses, inheritanceMap, getClassContent, abstractClassMap } from './extractClassInfo';
+import { ClassService } from './service/classService';
+import { ClassParser } from './parser/classParser';
+import { PlantUmlGenerator } from './generator/plantUmlGenerator';
 
-export function generateClassDiagram(uri: vscode.Uri) {
-  if (uri && uri.fsPath.endsWith('.cls')) {
-    vscode.window.showInformationMessage('Generating class diagram for ' + uri.fsPath);
-    scanDirectory(path.dirname(uri.fsPath)).then(() => {
-      parseObjectScriptFile(uri.fsPath);
-    }).catch(err => {
-      vscode.window.showErrorMessage('Failed to scan directory: ' + err);
-    });
-  } else {
+export async function generateClassDiagram(uri: vscode.Uri) {
+  if (!uri || !uri.fsPath.endsWith('.cls')) {
     vscode.window.showInformationMessage('Please select a .cls file');
+    return;
   }
-}
 
-function parseObjectScriptFile(filePath: string) {
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    const className = extractClassName(data);
-    const allRelatedClasses = getAllSuperClasses(className); // Get all related parent classes
-    const classHierarchy = new Map<string, string[]>();
-    const classAttributes = new Map<string, string[]>();
-    const classMethods = new Map<string, string[]>();
+  try {
+    const classService = new ClassService();
+    const baseDir = path.dirname(uri.fsPath);
     
-    // Get direct parent classes for each related class
-    [className, ...allRelatedClasses].forEach(cls => {
-      classHierarchy.set(cls, inheritanceMap[cls] || []);
-      
-      // Extract attributes and methods for each class
-      const classContent = getClassContent(cls);
-      if (classContent) {
-        classAttributes.set(cls, extractAttributes(classContent));
-        classMethods.set(cls, extractMethods(classContent));
+    // First scan the immediate directory
+    await classService.scanDirectory(baseDir);
+    
+    // Read and parse the main class
+    const fileContent = await fs.promises.readFile(uri.fsPath, 'utf8');
+    const mainClassInfo = ClassParser.parseClassContent(fileContent);
+    
+    // Get all superclasses
+    const superClasses = classService.getAllSuperClasses(mainClassInfo.className);
+    
+    // Ensure all superclasses are loaded
+    for (const superClass of superClasses) {
+      await classService.ensureClassInfoLoaded(superClass, baseDir);
+    }
+    
+    const relatedClasses = superClasses
+      .map(className => classService.getClassInfo(className))
+      .filter((info): info is NonNullable<typeof info> => info !== undefined);
+    
+    // Create a filtered hierarchy map that includes the inheritance chain
+    const filteredHierarchy = new Map<string, string[]>();
+    
+    // Add main class's inheritance
+    filteredHierarchy.set(mainClassInfo.className, mainClassInfo.superClasses);
+    
+    // Add parent classes' inheritance
+    relatedClasses.forEach(classInfo => {
+      if (classInfo.superClasses.length > 0) {
+        filteredHierarchy.set(classInfo.className, classInfo.superClasses);
       }
     });
     
-    // Extract attributes and methods for the current class
-    classAttributes.set(className, extractAttributes(data));
-    classMethods.set(className, extractMethods(data));
+    const umlContent = PlantUmlGenerator.generatePlantUml(
+      mainClassInfo,
+      relatedClasses,
+      filteredHierarchy
+    );
+
+    const umlFilePath = uri.fsPath.replace('.cls', '.puml');
+    await fs.promises.writeFile(umlFilePath, umlContent);
     
-    generateUmlFile(filePath, className, Array.from(classHierarchy.entries()), classAttributes, classMethods);
-  });
+    vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
+    await exportPng(umlFilePath);
+  } catch (err) {
+    vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
+  }
 }
 
-function generateUmlFile(
-  filePath: string, 
-  className: string, 
-  classHierarchy: [string, string[]][], 
-  classAttributes: Map<string, string[]>,
-  classMethods: Map<string, string[]>
-) {
-  const allClasses = new Set(classHierarchy.flatMap(([cls, parents]) => [cls, ...parents]));
-  const isAbstract = abstractClassMap[className];
-  
-  const umlContent = `
-@startuml
-set namespaceSeparator none
-hide empty members
-
-${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== className), classAttributes, classMethods)}${hasMembers(className, classAttributes, classMethods) ? 
-`${isAbstract ? 'abstract ' : ''}class "${className}" {
-${generateMembers(className, classAttributes, classMethods)}
-}` : 
-`${isAbstract ? 'abstract ' : ''}class "${className}"`}
-
-${generateInheritanceRelations(classHierarchy)}
-@enduml
-`;
-
-  const umlFilePath = filePath.replace('.cls', '.puml');
-  fs.writeFile(umlFilePath, umlContent, (err) => {
-    if (err) {
-      console.error(err);
-    } else {
-      vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-      exportPng(umlFilePath);
-    }
-  });
-}
-
-function hasMembers(className: string, classAttributes: Map<string, string[]>, classMethods: Map<string, string[]>): boolean {
-  const attributes = classAttributes.get(className) || [];
-  const methods = classMethods.get(className) || [];
-  return attributes.length > 0 || methods.length > 0;
-}
-
-function generateMembers(className: string, classAttributes: Map<string, string[]>, classMethods: Map<string, string[]>): string {
-  const attributes = classAttributes.get(className) || [];
-  const methods = classMethods.get(className) || [];
-  return `${attributes.map(attr => `  + ${attr}`).join('\n')}${attributes.length > 0 && methods.length > 0 ? '\n' : ''}${methods.map(method => `  + ${method}`).join('\n')}`;
-}
-
-function generateClassDefinitions(
-  classes: string[], 
-  classAttributes: Map<string, string[]>,
-  classMethods: Map<string, string[]>
-): string {
-  const classDefinitions = new Set<string>();
-  classes.forEach(className => {
-    const isAbstract = abstractClassMap[className];
-    if (hasMembers(className, classAttributes, classMethods)) {
-      classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class "${className}" {
-${generateMembers(className, classAttributes, classMethods)}
-}\n`);
-    } else {
-      classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class "${className}"\n`);
-    }
-  });
-  return Array.from(classDefinitions).join('');
-}
-
-function generateInheritanceRelations(classHierarchy: [string, string[]][]): string {
-  const relations = new Set<string>();
-  classHierarchy.forEach(([cls, parents]) => {
-    parents.forEach(parent => {
-      relations.add(`"${parent}" <|-- "${cls}"`);
-    });
-  });
-  return Array.from(relations).join('\n');
-}
-
-function exportPng(umlFilePath: string) {
+async function exportPng(umlFilePath: string): Promise<void> {
   const jarPath = path.join(__dirname, '..', 'lib', 'plantuml-mit-1.2025.0.jar');
-  const pngFilePath = umlFilePath.replace('.puml', '.png');
   const command = `java -jar "${jarPath}" -tpng "${umlFilePath}"`;
 
-  console.log(`Executing command: ${command}`);
-
-  exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error(err);
-      vscode.window.showErrorMessage(`Failed to generate PNG file: ${err}`);
-      return;
-    }
-    if (stderr) {
-      console.error(stderr);
-    }
-    vscode.window.showInformationMessage(`PNG file generated: ${pngFilePath}`);
+  return new Promise((resolve, reject) => {
+    exec(command, (err, stdout, stderr) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+        return;
+      }
+      if (stderr) {
+        console.error(stderr);
+      }
+      const pngFilePath = umlFilePath.replace('.puml', '.png');
+      vscode.window.showInformationMessage(`PNG file generated: ${pngFilePath}`);
+      resolve();
+    });
   });
 }
