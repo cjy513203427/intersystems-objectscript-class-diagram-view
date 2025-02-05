@@ -56,20 +56,23 @@ function generateUmlFile(
   classAttributes: Map<string, string[]>,
   classMethods: Map<string, string[]>
 ) {
-  const sanitizedClassName = className.replace(/\./g, '_');
   const allClasses = new Set(classHierarchy.flatMap(([cls, parents]) => [cls, ...parents]));
   const isAbstract = abstractClassMap[className];
   
   const umlContent = `
 @startuml
-${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== sanitizedClassName), classAttributes, classMethods)}
-${isAbstract ? 'abstract ' : ''}class ${sanitizedClassName} {
-  ${(classAttributes.get(className) || []).map(attr => `+ ${attr}`).join('\n  ')}
-  ${(classMethods.get(className) || []).map(method => `+ ${method}`).join('\n  ')}
-}
+set namespaceSeparator none
+hide empty members
+
+${generateClassDefinitions(Array.from(allClasses).filter(cls => cls !== className), classAttributes, classMethods)}${hasMembers(className, classAttributes, classMethods) ? 
+`${isAbstract ? 'abstract ' : ''}class "${className}" {
+${generateMembers(className, classAttributes, classMethods)}
+}` : 
+`${isAbstract ? 'abstract ' : ''}class "${className}"`}
+
 ${generateInheritanceRelations(classHierarchy)}
 @enduml
-  `;
+`;
 
   const umlFilePath = filePath.replace('.cls', '.puml');
   fs.writeFile(umlFilePath, umlContent, (err) => {
@@ -82,6 +85,18 @@ ${generateInheritanceRelations(classHierarchy)}
   });
 }
 
+function hasMembers(className: string, classAttributes: Map<string, string[]>, classMethods: Map<string, string[]>): boolean {
+  const attributes = classAttributes.get(className) || [];
+  const methods = classMethods.get(className) || [];
+  return attributes.length > 0 || methods.length > 0;
+}
+
+function generateMembers(className: string, classAttributes: Map<string, string[]>, classMethods: Map<string, string[]>): string {
+  const attributes = classAttributes.get(className) || [];
+  const methods = classMethods.get(className) || [];
+  return `${attributes.map(attr => `  + ${attr}`).join('\n')}${attributes.length > 0 && methods.length > 0 ? '\n' : ''}${methods.map(method => `  + ${method}`).join('\n')}`;
+}
+
 function generateClassDefinitions(
   classes: string[], 
   classAttributes: Map<string, string[]>,
@@ -89,13 +104,14 @@ function generateClassDefinitions(
 ): string {
   const classDefinitions = new Set<string>();
   classes.forEach(className => {
-    const attributes = classAttributes.get(className) || [];
-    const methods = classMethods.get(className) || [];
     const isAbstract = abstractClassMap[className];
-    classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class ${className} {
-  ${attributes.map(attr => `+ ${attr}`).join('\n  ')}
-  ${methods.map(method => `+ ${method}`).join('\n  ')}
+    if (hasMembers(className, classAttributes, classMethods)) {
+      classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class "${className}" {
+${generateMembers(className, classAttributes, classMethods)}
 }\n`);
+    } else {
+      classDefinitions.add(`${isAbstract ? 'abstract ' : ''}class "${className}"\n`);
+    }
   });
   return Array.from(classDefinitions).join('');
 }
@@ -104,7 +120,7 @@ function generateInheritanceRelations(classHierarchy: [string, string[]][]): str
   const relations = new Set<string>();
   classHierarchy.forEach(([cls, parents]) => {
     parents.forEach(parent => {
-      relations.add(`${parent} <|-- ${cls}`);
+      relations.add(`"${parent}" <|-- "${cls}"`);
     });
   });
   return Array.from(relations).join('\n');

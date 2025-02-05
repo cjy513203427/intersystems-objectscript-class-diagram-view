@@ -8,7 +8,7 @@ export const abstractClassMap: { [key: string]: boolean } = {};
 export function extractClassName(data: string): string {
   const match = data.match(/Class ([\w.]+)/);
   if (match) {
-    return match[1].replace(/\./g, '_');
+    return match[1];
   }
   return 'UnknownClass';
 }
@@ -16,11 +16,11 @@ export function extractClassName(data: string): string {
 export function extractSuperClasses(data: string): string[] {
   const match = data.match(/Class [\w.]+ Extends \(([^)]+)\)/);
   if (match) {
-    return match[1].split(',').map(superClass => superClass.trim().replace(/%/g, '').replace(/\./g, '_'));
+    return match[1].split(',').map(superClass => superClass.trim().replace(/%/g, ''));
   }
   const singleMatch = data.match(/Class [\w.]+ Extends ([\w.%]+)/);
   if (singleMatch) {
-    return [singleMatch[1].trim().replace(/%/g, '').replace(/\./g, '_')];
+    return [singleMatch[1].trim().replace(/%/g, '')];
   }
   return [];
 }
@@ -33,7 +33,7 @@ export function extractAttributes(data: string): string[] {
   const properties = propertyMatches ? propertyMatches.map(m => {
     const match = m.match(/Property (\w+) As ([\w.%()]+)/);
     if (match) {
-      const type = match[2].split('(')[0].replace(/%/g, '').replace(/\./g, '_');
+      const type = match[2].split('(')[0];  // Keep % symbol
       return `${match[1]}: ${type}`;
     }
     return '';
