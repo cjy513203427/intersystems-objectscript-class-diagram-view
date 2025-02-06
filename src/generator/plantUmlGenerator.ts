@@ -36,10 +36,33 @@ ${this.generateMembers(classInfo)}
       .join('');
 
     return `@startuml
+scale max 2000 width
+skinparam dpi 150
+skinparam nodesep 50
+skinparam ranksep 50
 set namespaceSeparator none
 hide empty members
 
 ${relatedClassDefinitions}${this.generateClassDefinition(mainClass)}
+${this.generateInheritanceRelations(classHierarchy)}
+@enduml`;
+  }
+
+  public static generatePlantUmlForDirectory(allClasses: IClassInfo[], classHierarchy: Map<string, string[]>): string {
+    // Generate definitions for all classes
+    const classDefinitions = allClasses
+      .map(classInfo => this.generateClassDefinition(classInfo))
+      .join('');
+
+    return `@startuml
+scale max 2000 width
+skinparam dpi 150
+skinparam nodesep 50
+skinparam ranksep 50
+set namespaceSeparator none
+hide empty members
+
+${classDefinitions}
 ${this.generateInheritanceRelations(classHierarchy)}
 @enduml`;
   }

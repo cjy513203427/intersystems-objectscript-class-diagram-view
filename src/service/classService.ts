@@ -118,6 +118,10 @@ export class ClassService {
     return this.classInfoMap.get(className);
   }
 
+  public getAllClassInfos(): Map<string, IClassInfo> {
+    return this.classInfoMap;
+  }
+
   public getAllSuperClasses(className: string): string[] {
     const allSuperClasses = new Set<string>();
 
