@@ -29,16 +29,14 @@ async function hasClsFiles(dirPath: string): Promise<boolean> {
 }
 
 export async function generateClassDiagram(uri: vscode.Uri) {
+  if (!uri || (!uri.fsPath.endsWith('.cls') && !fs.statSync(uri.fsPath).isDirectory())) {
+    vscode.window.showInformationMessage('Please select a .cls file or a directory containing .cls files');
+    return;
+  }
+
   try {
-    const stats = await fs.promises.stat(uri.fsPath);
-    const isDirectory = stats.isDirectory();
-
-    if (!isDirectory && !uri.fsPath.endsWith('.cls')) {
-      vscode.window.showInformationMessage('Please select a .cls file or a directory containing .cls files');
-      return;
-    }
-
-    if (isDirectory) {
+    // Check for .cls files in directory
+    if (fs.statSync(uri.fsPath).isDirectory()) {
       const hasClsFilesInDir = await hasClsFiles(uri.fsPath);
       if (!hasClsFilesInDir) {
         vscode.window.showInformationMessage('Selected directory does not contain any .cls files');
@@ -47,48 +45,48 @@ export async function generateClassDiagram(uri: vscode.Uri) {
     }
 
     const classService = new ClassService();
-    const baseDir = isDirectory ? uri.fsPath : path.dirname(uri.fsPath);
+    const baseDir = fs.statSync(uri.fsPath).isDirectory() ? uri.fsPath : path.dirname(uri.fsPath);
     
-    // Scan all classes in the directory
+    // First scan the immediate directory
     await classService.scanDirectory(baseDir);
 
-    if (isDirectory) {
+    let umlContent: string;
+    let outputFileName: string;
+    
+    if (fs.statSync(uri.fsPath).isDirectory()) {
       // Generate diagram for directory
       const allClassInfos = Array.from(classService.getAllClassInfos().values());
+      if (allClassInfos.length === 0) {
+        vscode.window.showInformationMessage('No valid class files found in the selected directory');
+        return;
+      }
+
       const classHierarchy = classService.getClassHierarchy();
       
       // Generate PUML content
-      const umlContent = PlantUmlGenerator.generatePlantUmlForDirectory(allClassInfos, classHierarchy);
+      umlContent = PlantUmlGenerator.generatePlantUmlForDirectory(allClassInfos, classHierarchy);
 
-      // Get package name from directory path
-      const getPackageName = (dirPath: string): string => {
-        // Split path into parts
-        const parts = dirPath.split(path.sep);
-        // Find the position of apiPub
-        const apiPubIndex = parts.findIndex(part => part.toLowerCase() === 'apipub');
-        if (apiPubIndex !== -1) {
-          // Join parts from apiPub onwards with dots
-          return parts.slice(apiPubIndex).join('.');
-        }
-        // If apiPub not found, use directory name
-        return path.basename(dirPath);
-      };
-
-      const packageName = getPackageName(uri.fsPath);
-      const umlFilePath = path.join(baseDir, `${packageName}.puml`);
-      await fs.promises.writeFile(umlFilePath, umlContent);
+      // Get full package name from the directory name
+      outputFileName = path.basename(uri.fsPath).split(path.sep).join('.');
       
-      vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-      await exportPng(umlFilePath);
+      // Walk up the directory tree to build the full package name
+      let currentDir = path.dirname(uri.fsPath);
+      while (currentDir && currentDir !== baseDir && path.basename(currentDir) !== 'src') {
+        const parentDir = path.basename(currentDir);
+        if (parentDir) {
+          outputFileName = parentDir + '.' + outputFileName;
+        }
+        currentDir = path.dirname(currentDir);
+      }
     } else {
       // Generate diagram for single file
       const fileContent = await fs.promises.readFile(uri.fsPath, 'utf8');
       const mainClassInfo = ClassParser.parseClassContent(fileContent);
       
-      // Get all parent classes
+      // Get all superclasses
       const superClasses = classService.getAllSuperClasses(mainClassInfo.className);
       
-      // Ensure all parent classes are loaded
+      // Ensure all superclasses are loaded
       for (const superClass of superClasses) {
         await classService.ensureClassInfoLoaded(superClass, baseDir);
       }
@@ -97,32 +95,34 @@ export async function generateClassDiagram(uri: vscode.Uri) {
         .map(className => classService.getClassInfo(className))
         .filter((info): info is NonNullable<typeof info> => info !== undefined);
       
-      // Create filtered inheritance map
+      // Create a filtered hierarchy map that includes the inheritance chain
       const filteredHierarchy = new Map<string, string[]>();
       
-      // Add main class inheritance
+      // Add main class's inheritance
       filteredHierarchy.set(mainClassInfo.className, mainClassInfo.superClasses);
       
-      // Add parent classes inheritance
+      // Add parent classes' inheritance
       relatedClasses.forEach(classInfo => {
         if (classInfo.superClasses.length > 0) {
           filteredHierarchy.set(classInfo.className, classInfo.superClasses);
         }
       });
       
-      const umlContent = PlantUmlGenerator.generatePlantUml(
+      umlContent = PlantUmlGenerator.generatePlantUml(
         mainClassInfo,
         relatedClasses,
         filteredHierarchy
       );
 
-      // Use full class name as file name
-      const umlFilePath = path.join(baseDir, `${mainClassInfo.className}.puml`);
-      await fs.promises.writeFile(umlFilePath, umlContent);
-      
-      vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-      await exportPng(umlFilePath);
+      // Use class name as file name
+      outputFileName = mainClassInfo.className;
     }
+
+    const umlFilePath = path.join(baseDir, `${outputFileName}.puml`);
+    await fs.promises.writeFile(umlFilePath, umlContent);
+    
+    vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
+    await exportPng(umlFilePath);
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
   }

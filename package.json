@@ -32,7 +32,7 @@
       "explorer/context": [
         {
           "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
-          "when": "resourceExtname == .cls",
+          "when": "resourceExtname == .cls || explorerResourceIsFolder",
           "group": "navigation"
         }
       ]
