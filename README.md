@@ -1,71 +1,60 @@
-# intersystems-objectscript-class-diagram-view README
+# InterSystems ObjectScript Class Diagram View
 
-This is the READMe for your extension "intersystems-objectscript-class-diagram-view". After writing up a brief description, we recommend including the following sections.
+A Visual Studio Code extension that generates UML class diagrams for InterSystems ObjectScript classes.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Generate UML class diagrams from `.cls` files
+- Support for both single class and folder-level diagram generation
+- Right-click context menu integration in both editor and explorer
+- Visualize class relationships, properties, and methods
+- Built on PlantUML for reliable diagram rendering
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code 1.96.0 or higher
+- Java Runtime Environment (JRE) for PlantUML diagram generation
+- InterSystems ObjectScript files (`.cls`)
+
+## Installation
+
+1. Install the extension through VS Code Marketplace
+2. Ensure you have Java Runtime Environment (JRE) installed on your system
+3. Restart VS Code after installation
+
+## Usage
+
+1. Right-click on a `.cls` file in the editor or explorer
+2. Select "Generate Class Diagram" from the context menu
+3. The class diagram will be generated and displayed
+
+You can also generate diagrams for multiple classes by:
+1. Right-clicking on a folder containing `.cls` files
+2. Selecting "Generate Class Diagram"
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+This extension contributes the following commands:
 
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `intersystems-objectscript-class-diagram-view.generateClassDiagram`: Generate a class diagram for the selected file or folder
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Please report any issues on the GitHub repository.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This extension is licensed under the MIT License.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release of InterSystems ObjectScript Class Diagram View
+- Basic class diagram generation
+- Support for single file and folder processing
+- Context menu integration
