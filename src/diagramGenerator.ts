@@ -122,15 +122,15 @@ export async function generateClassDiagram(uri: vscode.Uri) {
     await fs.promises.writeFile(umlFilePath, umlContent);
     
     vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-    await exportPng(umlFilePath);
+    await exportDiagram(umlFilePath);
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
   }
 }
 
-async function exportPng(umlFilePath: string): Promise<void> {
+async function exportDiagram(umlFilePath: string): Promise<void> {
   const jarPath = path.join(__dirname, '..', 'lib', 'plantuml-mit-1.2025.0.jar');
-  const command = `java -jar "${jarPath}" -tpng "${umlFilePath}"`;
+  const command = `java -jar "${jarPath}" -tsvg "${umlFilePath}"`;
 
   return new Promise((resolve, reject) => {
     exec(command, (err, stdout, stderr) => {
@@ -142,8 +142,8 @@ async function exportPng(umlFilePath: string): Promise<void> {
       if (stderr) {
         console.error(stderr);
       }
-      const pngFilePath = umlFilePath.replace('.puml', '.png');
-      vscode.window.showInformationMessage(`PNG file generated: ${pngFilePath}`);
+      const svgFilePath = umlFilePath.replace('.puml', '.svg');
+      vscode.window.showInformationMessage(`SVG file generated: ${svgFilePath}`);
       resolve();
     });
   });
