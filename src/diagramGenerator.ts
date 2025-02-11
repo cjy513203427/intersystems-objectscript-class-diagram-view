@@ -34,6 +34,12 @@ export async function generateClassDiagram(uri: vscode.Uri) {
     return;
   }
 
+  // Check if the selected path is 'src' directory
+  if (fs.statSync(uri.fsPath).isDirectory() && path.basename(uri.fsPath).toLowerCase() === 'src') {
+    vscode.window.showWarningMessage('The src directory is not supported for class diagram generation');
+    return;
+  }
+
   try {
     // Check for .cls files in directory
     if (fs.statSync(uri.fsPath).isDirectory()) {
