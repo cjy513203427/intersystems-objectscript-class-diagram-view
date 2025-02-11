@@ -34,8 +34,7 @@ export class ClassDiagramPanel {
             : undefined;
 
         if (ClassDiagramPanel.currentPanel) {
-            ClassDiagramPanel.currentPanel._panel.reveal(column);
-            return;
+            ClassDiagramPanel.currentPanel.dispose();
         }
 
         const panel = vscode.window.createWebviewPanel(
@@ -74,16 +73,36 @@ export class ClassDiagramPanel {
                     padding: 10px;
                     background: var(--vscode-editor-background);
                     color: var(--vscode-editor-foreground);
+                    overflow: hidden;
                 }
                 #diagram {
                     width: 100%;
                     height: 100vh;
-                    overflow: hidden;
+                    overflow: auto;
                     position: relative;
                 }
                 #svg-container {
                     transform-origin: 0 0;
                     transition: transform 0.1s ease-out;
+                    min-width: min-content;
+                    min-height: min-content;
+                    padding: 20px;
+                }
+                /* Customize scrollbar for better visibility */
+                #diagram::-webkit-scrollbar {
+                    width: 12px;
+                    height: 12px;
+                }
+                #diagram::-webkit-scrollbar-track {
+                    background: var(--vscode-scrollbarSlider-background);
+                    border-radius: 6px;
+                }
+                #diagram::-webkit-scrollbar-thumb {
+                    background: var(--vscode-scrollbarSlider-hoverBackground);
+                    border-radius: 6px;
+                }
+                #diagram::-webkit-scrollbar-thumb:hover {
+                    background: var(--vscode-scrollbarSlider-activeBackground);
                 }
                 .clickable {
                     cursor: pointer;
@@ -101,6 +120,7 @@ export class ClassDiagramPanel {
                     padding: 10px;
                     border-radius: 4px;
                     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    z-index: 1000;
                 }
                 .zoom-btn {
                     background: var(--vscode-button-background);
@@ -137,11 +157,12 @@ export class ClassDiagramPanel {
                 (function() {
                     const vscode = acquireVsCodeApi();
                     const container = document.getElementById('svg-container');
+                    const diagram = document.getElementById('diagram');
                     const zoomLevelDisplay = document.querySelector('.zoom-level');
                     let currentScale = 1;
                     const ZOOM_STEP = 0.1;
                     const MIN_SCALE = 0.1;
-                    const MAX_SCALE = 3;
+                    const MAX_SCALE = 5;
                     
                     // Zoom functions
                     window.zoomIn = () => {
@@ -169,7 +190,7 @@ export class ClassDiagramPanel {
                     }
                     
                     // Mouse wheel zoom with Ctrl key
-                    document.getElementById('diagram').addEventListener('wheel', (e) => {
+                    diagram.addEventListener('wheel', (e) => {
                         if (e.ctrlKey) {
                             e.preventDefault();
                             if (e.deltaY < 0) {
