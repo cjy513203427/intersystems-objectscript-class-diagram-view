@@ -5,6 +5,7 @@ import { exec } from 'child_process';
 import { ClassService } from './service/classService';
 import { ClassParser } from './parser/classParser';
 import { PlantUmlGenerator } from './generator/plantUmlGenerator';
+import { ClassDiagramPanel } from './webview/ClassDiagramPanel';
 
 async function hasClsFiles(dirPath: string): Promise<boolean> {
   try {
@@ -128,13 +129,16 @@ export async function generateClassDiagram(uri: vscode.Uri) {
     await fs.promises.writeFile(umlFilePath, umlContent);
     
     vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-    await exportDiagram(umlFilePath);
+    const svgFilePath = await exportDiagram(umlFilePath);
+    
+    // Show the diagram in a WebView
+    ClassDiagramPanel.createOrShow(__dirname, svgFilePath);
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
   }
 }
 
-async function exportDiagram(umlFilePath: string): Promise<void> {
+async function exportDiagram(umlFilePath: string): Promise<string> {
   const jarPath = path.join(__dirname, '..', 'lib', 'plantuml-mit-1.2025.0.jar');
   const command = `java -jar "${jarPath}" -tsvg "${umlFilePath}"`;
 
@@ -150,7 +154,7 @@ async function exportDiagram(umlFilePath: string): Promise<void> {
       }
       const svgFilePath = umlFilePath.replace('.puml', '.svg');
       vscode.window.showInformationMessage(`SVG file generated: ${svgFilePath}`);
-      resolve();
+      resolve(svgFilePath);
     });
   });
 }
