@@ -148,8 +148,8 @@ export async function generateClassDiagram(uri: vscode.Uri) {
         vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
         const svgFilePath = await exportDiagram(umlFilePath);
         
-        // Show the diagram in a WebView
-        ClassDiagramPanel.createOrShow(__dirname, svgFilePath);
+        // Show the diagram in a WebView with baseDir for class lookup
+        ClassDiagramPanel.createOrShow(__dirname, svgFilePath, baseDir);
     } catch (err) {
         vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
     }

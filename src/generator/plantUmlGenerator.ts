@@ -11,19 +11,20 @@ export class PlantUmlGenerator {
   }
 
   private static generateClassDefinition(classInfo: IClassInfo): string {
+    const className = classInfo.className;
     if (this.hasMembers(classInfo)) {
-      return `${classInfo.isAbstract ? 'abstract ' : ''}class "${classInfo.className}" {
+      return `${classInfo.isAbstract ? 'abstract ' : ''}class "class:${className}" as ${className} {
 ${this.generateMembers(classInfo)}
 }\n`;
     }
-    return `${classInfo.isAbstract ? 'abstract ' : ''}class "${classInfo.className}"\n`;
+    return `${classInfo.isAbstract ? 'abstract ' : ''}class "class:${className}" as ${className}\n`;
   }
 
   private static generateInheritanceRelations(classHierarchy: Map<string, string[]>): string {
     const relations = new Set<string>();
     classHierarchy.forEach((parents, cls) => {
       parents.forEach(parent => {
-        relations.add(`"${parent}" <|-- "${cls}"`);
+        relations.add(`${parent} <|-- ${cls}`);
       });
     });
     return Array.from(relations).join('\n');
@@ -43,6 +44,12 @@ skinparam ranksep 50
 set namespaceSeparator none
 hide empty members
 
+' Add click style for classes
+skinparam class {
+    BackgroundColor<<click>> White
+    BorderColor<<click>> Blue
+}
+
 ${relatedClassDefinitions}${this.generateClassDefinition(mainClass)}
 ${this.generateInheritanceRelations(classHierarchy)}
 @enduml`;
@@ -61,6 +68,12 @@ skinparam nodesep 50
 skinparam ranksep 50
 set namespaceSeparator none
 hide empty members
+
+' Add click style for classes
+skinparam class {
+    BackgroundColor<<click>> White
+    BorderColor<<click>> Blue
+}
 
 ${classDefinitions}
 ${this.generateInheritanceRelations(classHierarchy)}

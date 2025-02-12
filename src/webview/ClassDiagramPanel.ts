@@ -2,24 +2,28 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+/**
+ * A panel that displays class diagrams in a webview.
+ * Supports interactive features like zooming and clicking on classes to navigate to their definitions.
+ */
 export class ClassDiagramPanel {
     public static currentPanel: ClassDiagramPanel | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionPath: string;
+    private readonly _baseDir: string;
     private _disposables: vscode.Disposable[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionPath: string) {
+    private constructor(panel: vscode.WebviewPanel, extensionPath: string, baseDir: string) {
         this._panel = panel;
         this._extensionPath = extensionPath;
+        this._baseDir = baseDir;
 
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._panel.webview.onDidReceiveMessage(
             async message => {
                 switch (message.command) {
                     case 'openClass':
-                        const uri = vscode.Uri.file(message.filePath);
-                        const document = await vscode.workspace.openTextDocument(uri);
-                        await vscode.window.showTextDocument(document);
+                        await this.openClass(message.className);
                         break;
                 }
             },
@@ -28,7 +32,55 @@ export class ClassDiagramPanel {
         );
     }
 
-    public static createOrShow(extensionPath: string, svgPath: string) {
+    /**
+     * Opens the class file in the editor.
+     * First tries to find the file using the full namespace path,
+     * then falls back to searching by class name only.
+     */
+    private async openClass(className: string) {
+        try {
+            // Replace dots in class name with path separators
+            const classPath = className.replace(/\./g, path.sep);
+            
+            // Try to find the file using the full path
+            const files = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(this._baseDir, `**/${classPath}.cls`)
+            );
+
+            if (files.length > 0) {
+                const document = await vscode.workspace.openTextDocument(files[0]);
+                await vscode.window.showTextDocument(document);
+                return;
+            }
+
+            // If not found, try searching by class name only
+            const simpleClassName = className.split('.').pop() || className;
+            const filesByName = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(this._baseDir, `**/${simpleClassName}.cls`)
+            );
+
+            if (filesByName.length > 0) {
+                const document = await vscode.workspace.openTextDocument(filesByName[0]);
+                await vscode.window.showTextDocument(document);
+                return;
+            }
+
+            // If still not found, show error message with search paths
+            vscode.window.showWarningMessage(
+                `Class file not found: ${className}.cls\nSearched paths:\n` +
+                `1. ${classPath}.cls\n` +
+                `2. ${simpleClassName}.cls`
+            );
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to open class: ${err}`);
+        }
+    }
+
+    /**
+     * Creates and shows a new class diagram panel, or reveals an existing one.
+     * If a panel already exists, it will be disposed and a new one will be created.
+     */
+    public static createOrShow(extensionPath: string, svgPath: string, baseDir: string) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
@@ -50,10 +102,14 @@ export class ClassDiagramPanel {
             }
         );
 
-        ClassDiagramPanel.currentPanel = new ClassDiagramPanel(panel, extensionPath);
+        ClassDiagramPanel.currentPanel = new ClassDiagramPanel(panel, extensionPath, baseDir);
         ClassDiagramPanel.currentPanel.updateContent(svgPath);
     }
 
+    /**
+     * Updates the webview content with the SVG diagram.
+     * Reads the SVG file and injects it into the HTML template.
+     */
     private async updateContent(svgPath: string) {
         const svgContent = await fs.promises.readFile(svgPath, 'utf8');
         const webviewContent = this.getWebviewContent(svgContent);
@@ -88,27 +144,9 @@ export class ClassDiagramPanel {
                     min-height: min-content;
                     padding: 20px;
                 }
-                /* Customize scrollbar for better visibility */
-                #diagram::-webkit-scrollbar {
-                    width: 12px;
-                    height: 12px;
-                }
-                #diagram::-webkit-scrollbar-track {
-                    background: var(--vscode-scrollbarSlider-background);
-                    border-radius: 6px;
-                }
-                #diagram::-webkit-scrollbar-thumb {
-                    background: var(--vscode-scrollbarSlider-hoverBackground);
-                    border-radius: 6px;
-                }
-                #diagram::-webkit-scrollbar-thumb:hover {
-                    background: var(--vscode-scrollbarSlider-activeBackground);
-                }
-                .clickable {
-                    cursor: pointer;
-                }
-                .clickable:hover {
-                    opacity: 0.8;
+                #svg-container svg {
+                    width: 100%;
+                    height: auto;
                 }
                 .zoom-controls {
                     position: fixed;
@@ -139,6 +177,19 @@ export class ClassDiagramPanel {
                     margin: 0 10px;
                     line-height: 32px;
                 }
+                /* SVG 样式 */
+                #svg-container text {
+                    cursor: pointer;
+                }
+                #svg-container text:hover {
+                    fill: var(--vscode-textLink-foreground);
+                }
+                #svg-container g[id^="elem_"] {
+                    cursor: pointer;
+                }
+                #svg-container g[id^="elem_"]:hover rect {
+                    stroke: var(--vscode-textLink-foreground);
+                }
             </style>
         </head>
         <body>
@@ -163,6 +214,47 @@ export class ClassDiagramPanel {
                     const ZOOM_STEP = 0.1;
                     const MIN_SCALE = 0.1;
                     const MAX_SCALE = 5;
+                    
+                    // 初始化 SVG 交互
+                    function initializeSvgInteraction() {
+                        const svg = container.querySelector('svg');
+                        if (!svg) return;
+
+                        // 处理所有文本元素的点击
+                        svg.querySelectorAll('text').forEach(text => {
+                            const content = text.textContent;
+                            if (content && content.includes('class:')) {
+                                const className = content.split('class:')[1];
+                                text.textContent = className; // 移除 class: 前缀
+                                text.addEventListener('click', () => {
+                                    console.log('Clicked class:', className);
+                                    vscode.postMessage({
+                                        command: 'openClass',
+                                        className: className
+                                    });
+                                });
+                            }
+                        });
+
+                        // 处理所有类矩形的点击
+                        svg.querySelectorAll('g[id^="elem_"]').forEach(g => {
+                            const text = g.querySelector('text');
+                            if (text && text.textContent.includes('class:')) {
+                                const className = text.textContent.split('class:')[1];
+                                text.textContent = className;
+                                g.addEventListener('click', () => {
+                                    console.log('Clicked class container:', className);
+                                    vscode.postMessage({
+                                        command: 'openClass',
+                                        className: className
+                                    });
+                                });
+                            }
+                        });
+                    }
+
+                    // 初始化交互
+                    initializeSvgInteraction();
                     
                     // Zoom functions
                     window.zoomIn = () => {
@@ -200,25 +292,15 @@ export class ClassDiagramPanel {
                             }
                         }
                     });
-                    
-                    // Class name click handler for navigation
-                    document.querySelectorAll('.clickable').forEach(element => {
-                        element.addEventListener('click', (e) => {
-                            const className = e.target.getAttribute('data-class');
-                            if (className) {
-                                vscode.postMessage({
-                                    command: 'openClass',
-                                    className: className
-                                });
-                            }
-                        });
-                    });
                 })();
             </script>
         </body>
         </html>`;
     }
 
+    /**
+     * Cleans up resources when the panel is closed.
+     */
     public dispose() {
         ClassDiagramPanel.currentPanel = undefined;
         this._panel.dispose();
