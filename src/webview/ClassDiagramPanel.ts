@@ -215,45 +215,47 @@ export class ClassDiagramPanel {
                     const MIN_SCALE = 0.1;
                     const MAX_SCALE = 5;
                     
-                    // 初始化 SVG 交互
+                    // Initialize SVG interaction
                     function initializeSvgInteraction() {
                         const svg = container.querySelector('svg');
                         if (!svg) return;
 
-                        // 处理所有文本元素的点击
+                        // Handle text elements (class names)
                         svg.querySelectorAll('text').forEach(text => {
-                            const content = text.textContent;
-                            if (content && content.includes('class:')) {
-                                const className = content.split('class:')[1];
-                                text.textContent = className; // 移除 class: 前缀
+                            const content = text.textContent?.trim();
+                            if (content && !content.startsWith('+')) { // Skip method and attribute names
+                                text.style.cursor = 'pointer';
                                 text.addEventListener('click', () => {
-                                    console.log('Clicked class:', className);
+                                    console.log('Clicked class:', content);
                                     vscode.postMessage({
                                         command: 'openClass',
-                                        className: className
+                                        className: content
                                     });
                                 });
                             }
                         });
 
-                        // 处理所有类矩形的点击
-                        svg.querySelectorAll('g[id^="elem_"]').forEach(g => {
-                            const text = g.querySelector('text');
-                            if (text && text.textContent.includes('class:')) {
-                                const className = text.textContent.split('class:')[1];
-                                text.textContent = className;
-                                g.addEventListener('click', () => {
-                                    console.log('Clicked class container:', className);
-                                    vscode.postMessage({
-                                        command: 'openClass',
-                                        className: className
+                        // Handle class rectangles
+                        svg.querySelectorAll('g[id^="elem_"] rect').forEach(rect => {
+                            const g = rect.parentElement;
+                            if (g) {
+                                const text = g.querySelector('text');
+                                if (text && !text.textContent?.startsWith('+')) {
+                                    const className = text.textContent?.trim();
+                                    g.style.cursor = 'pointer';
+                                    g.addEventListener('click', () => {
+                                        console.log('Clicked class container:', className);
+                                        vscode.postMessage({
+                                            command: 'openClass',
+                                            className: className
+                                        });
                                     });
-                                });
+                                }
                             }
                         });
                     }
 
-                    // 初始化交互
+                    // Initialize interaction
                     initializeSvgInteraction();
                     
                     // Zoom functions
