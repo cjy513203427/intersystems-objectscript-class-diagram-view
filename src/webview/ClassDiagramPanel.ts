@@ -12,6 +12,11 @@ export class ClassDiagramPanel {
     private readonly _extensionPath: string;
     private readonly _baseDir: string;
     private _disposables: vscode.Disposable[] = [];
+    private _viewState: { scrollX: number; scrollY: number; scale: number } = {
+        scrollX: 0,
+        scrollY: 0,
+        scale: 1
+    };
 
     private constructor(panel: vscode.WebviewPanel, extensionPath: string, baseDir: string) {
         this._panel = panel;
@@ -24,6 +29,13 @@ export class ClassDiagramPanel {
                 switch (message.command) {
                     case 'openClass':
                         await this.openClass(message.className);
+                        break;
+                    case 'saveViewState':
+                        this._viewState = {
+                            scrollX: message.scrollX,
+                            scrollY: message.scrollY,
+                            scale: message.scale
+                        };
                         break;
                 }
             },
@@ -39,37 +51,81 @@ export class ClassDiagramPanel {
      */
     private async openClass(className: string) {
         try {
-            // Replace dots in class name with path separators
+            // 1. First try: exact path with namespace structure
             const classPath = className.replace(/\./g, path.sep);
-            
-            // Try to find the file using the full path
             const files = await vscode.workspace.findFiles(
                 new vscode.RelativePattern(this._baseDir, `**/${classPath}.cls`)
             );
 
             if (files.length > 0) {
-                const document = await vscode.workspace.openTextDocument(files[0]);
-                await vscode.window.showTextDocument(document);
-                return;
+                // Ensure exact match by checking the full path
+                const exactMatch = files.find(file => {
+                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
+                    const normalizedClass = classPath.replace(/\\/g, '/').toLowerCase();
+                    return normalizedPath.endsWith(`/${normalizedClass}.cls`);
+                });
+
+                if (exactMatch) {
+                    const document = await vscode.workspace.openTextDocument(exactMatch);
+                    await vscode.window.showTextDocument(document);
+                    return;
+                }
             }
 
-            // If not found, try searching by class name only
+            // 2. Second try: search in parent directories
+            const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(this._baseDir));
+            if (workspaceFolder) {
+                const filesInWorkspace = await vscode.workspace.findFiles(
+                    new vscode.RelativePattern(workspaceFolder, `**/${classPath}.cls`)
+                );
+
+                // Ensure exact match by checking the full path
+                const exactMatch = filesInWorkspace.find(file => {
+                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
+                    const normalizedClass = classPath.replace(/\\/g, '/').toLowerCase();
+                    return normalizedPath.endsWith(`/${normalizedClass}.cls`);
+                });
+
+                if (exactMatch) {
+                    const document = await vscode.workspace.openTextDocument(exactMatch);
+                    await vscode.window.showTextDocument(document);
+                    return;
+                }
+            }
+
+            // 3. Third try: search by simple class name
             const simpleClassName = className.split('.').pop() || className;
             const filesByName = await vscode.workspace.findFiles(
-                new vscode.RelativePattern(this._baseDir, `**/${simpleClassName}.cls`)
+                new vscode.RelativePattern(workspaceFolder || this._baseDir, `**/${simpleClassName}.cls`)
             );
 
             if (filesByName.length > 0) {
-                const document = await vscode.workspace.openTextDocument(filesByName[0]);
-                await vscode.window.showTextDocument(document);
-                return;
+                // Only consider exact matches for the simple class name
+                const exactMatches = filesByName.filter(file => {
+                    const fileName = path.basename(file.fsPath, '.cls');
+                    return fileName.toLowerCase() === simpleClassName.toLowerCase();
+                });
+
+                // Among exact matches, prefer the one with matching namespace structure
+                const bestMatch = exactMatches.find(file => {
+                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
+                    const normalizedClass = className.toLowerCase().replace(/\./g, '/');
+                    return normalizedPath.includes(normalizedClass);
+                });
+
+                if (bestMatch) {
+                    const document = await vscode.workspace.openTextDocument(bestMatch);
+                    await vscode.window.showTextDocument(document);
+                    return;
+                }
             }
 
             // If still not found, show error message with search paths
             vscode.window.showWarningMessage(
                 `Class file not found: ${className}.cls\nSearched paths:\n` +
-                `1. ${classPath}.cls\n` +
-                `2. ${simpleClassName}.cls`
+                `1. ${this._baseDir}/**/${classPath}.cls\n` +
+                `2. ${workspaceFolder?.uri.fsPath || ''}/**/${classPath}.cls\n` +
+                `3. **/${simpleClassName}.cls`
             );
         } catch (err) {
             vscode.window.showErrorMessage(`Failed to open class: ${err}`);
@@ -80,7 +136,7 @@ export class ClassDiagramPanel {
      * Creates and shows a new class diagram panel, or reveals an existing one.
      * If a panel already exists, it will be disposed and a new one will be created.
      */
-    public static createOrShow(extensionPath: string, svgPath: string, baseDir: string) {
+    public static createOrShow(extensionPath: string, svgPath: string, baseDir: string, title: string = 'Class Diagram') {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
@@ -91,10 +147,11 @@ export class ClassDiagramPanel {
 
         const panel = vscode.window.createWebviewPanel(
             'classDiagram',
-            'Class Diagram',
+            title,
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
+                retainContextWhenHidden: true,
                 localResourceRoots: [
                     vscode.Uri.file(path.join(extensionPath, 'media')),
                     vscode.Uri.file(path.dirname(svgPath))
@@ -210,11 +267,33 @@ export class ClassDiagramPanel {
                     const container = document.getElementById('svg-container');
                     const diagram = document.getElementById('diagram');
                     const zoomLevelDisplay = document.querySelector('.zoom-level');
-                    let currentScale = 1;
+                    let currentScale = ${this._viewState.scale};
                     const ZOOM_STEP = 0.1;
                     const MIN_SCALE = 0.1;
                     const MAX_SCALE = 5;
                     
+                    // Restore scroll position
+                    diagram.scrollLeft = ${this._viewState.scrollX};
+                    diagram.scrollTop = ${this._viewState.scrollY};
+                    
+                    // Update zoom display
+                    updateZoom();
+
+                    // Save view state periodically
+                    function saveViewState() {
+                        vscode.postMessage({
+                            command: 'saveViewState',
+                            scrollX: diagram.scrollLeft,
+                            scrollY: diagram.scrollTop,
+                            scale: currentScale
+                        });
+                    }
+
+                    // Add scroll event listener
+                    diagram.addEventListener('scroll', () => {
+                        saveViewState();
+                    });
+
                     // Initialize SVG interaction
                     function initializeSvgInteraction() {
                         const svg = container.querySelector('svg');
@@ -226,6 +305,8 @@ export class ClassDiagramPanel {
                             if (content && !content.startsWith('+')) { // Skip method and attribute names
                                 text.style.cursor = 'pointer';
                                 text.addEventListener('click', () => {
+                                    // Save state before navigation
+                                    saveViewState();
                                     console.log('Clicked class:', content);
                                     vscode.postMessage({
                                         command: 'openClass',
@@ -244,6 +325,8 @@ export class ClassDiagramPanel {
                                     const className = text.textContent?.trim();
                                     g.style.cursor = 'pointer';
                                     g.addEventListener('click', () => {
+                                        // Save state before navigation
+                                        saveViewState();
                                         console.log('Clicked class container:', className);
                                         vscode.postMessage({
                                             command: 'openClass',
@@ -263,6 +346,7 @@ export class ClassDiagramPanel {
                         if (currentScale < MAX_SCALE) {
                             currentScale = Math.min(currentScale + ZOOM_STEP, MAX_SCALE);
                             updateZoom();
+                            saveViewState();
                         }
                     };
                     
@@ -270,12 +354,14 @@ export class ClassDiagramPanel {
                         if (currentScale > MIN_SCALE) {
                             currentScale = Math.max(currentScale - ZOOM_STEP, MIN_SCALE);
                             updateZoom();
+                            saveViewState();
                         }
                     };
                     
                     window.resetZoom = () => {
                         currentScale = 1;
                         updateZoom();
+                        saveViewState();
                     };
                     
                     function updateZoom() {
