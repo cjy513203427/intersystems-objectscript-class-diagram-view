@@ -21,6 +21,13 @@
         "title": "Generate Class Diagram"
       }
     ],
+    "keybindings": [
+      {
+        "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
+        "key": "ctrl+alt+u",
+        "when": "resourceExtname == .cls"
+      }
+    ],
     "menus": {
       "editor/context": [
         {
