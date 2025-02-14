@@ -67,7 +67,19 @@ export class ClassDiagramPanel {
 
                 if (exactMatch) {
                     const document = await vscode.workspace.openTextDocument(exactMatch);
-                    await vscode.window.showTextDocument(document);
+                    // Find the line containing the class definition
+                    const classDefLine = await this.findClassDefinitionLine(document, className);
+                    const editor = await vscode.window.showTextDocument(document);
+                    if (classDefLine !== -1) {
+                        // Move cursor to the class definition line
+                        const position = new vscode.Position(classDefLine, 0);
+                        editor.selection = new vscode.Selection(position, position);
+                        // Reveal the line in the center of the editor
+                        editor.revealRange(
+                            new vscode.Range(position, position),
+                            vscode.TextEditorRevealType.InCenter
+                        );
+                    }
                     return;
                 }
             }
@@ -88,7 +100,19 @@ export class ClassDiagramPanel {
 
                 if (exactMatch) {
                     const document = await vscode.workspace.openTextDocument(exactMatch);
-                    await vscode.window.showTextDocument(document);
+                    // Find the line containing the class definition
+                    const classDefLine = await this.findClassDefinitionLine(document, className);
+                    const editor = await vscode.window.showTextDocument(document);
+                    if (classDefLine !== -1) {
+                        // Move cursor to the class definition line
+                        const position = new vscode.Position(classDefLine, 0);
+                        editor.selection = new vscode.Selection(position, position);
+                        // Reveal the line in the center of the editor
+                        editor.revealRange(
+                            new vscode.Range(position, position),
+                            vscode.TextEditorRevealType.InCenter
+                        );
+                    }
                     return;
                 }
             }
@@ -115,7 +139,19 @@ export class ClassDiagramPanel {
 
                 if (bestMatch) {
                     const document = await vscode.workspace.openTextDocument(bestMatch);
-                    await vscode.window.showTextDocument(document);
+                    // Find the line containing the class definition
+                    const classDefLine = await this.findClassDefinitionLine(document, className);
+                    const editor = await vscode.window.showTextDocument(document);
+                    if (classDefLine !== -1) {
+                        // Move cursor to the class definition line
+                        const position = new vscode.Position(classDefLine, 0);
+                        editor.selection = new vscode.Selection(position, position);
+                        // Reveal the line in the center of the editor
+                        editor.revealRange(
+                            new vscode.Range(position, position),
+                            vscode.TextEditorRevealType.InCenter
+                        );
+                    }
                     return;
                 }
             }
@@ -130,6 +166,25 @@ export class ClassDiagramPanel {
         } catch (err) {
             vscode.window.showErrorMessage(`Failed to open class: ${err}`);
         }
+    }
+
+    /**
+     * Finds the line number where the class is defined
+     * @param document The text document to search in
+     * @param className The name of the class to find
+     * @returns The 0-based line number of the class definition, or -1 if not found
+     */
+    private async findClassDefinitionLine(document: vscode.TextDocument, className: string): Promise<number> {
+        const simpleClassName = className.split('.').pop() || className;
+        const classDefRegex = new RegExp(`^\\s*(?:Class|class)\\s+(?:${className}|${simpleClassName})\\b`, 'i');
+        
+        for (let i = 0; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            if (classDefRegex.test(line.text)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
