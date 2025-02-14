@@ -1,4 +1,3 @@
-
 export interface IClassInfo {
   className: string;
   superClasses: string[];
@@ -32,16 +31,28 @@ export class ClassParser {
   }
 
   private static extractAttributes(data: string): string[] {
-    const propertyMatches = data.match(/Property (\w+) As ([\w.%()]+)/g);
+    const propertyMatches = data.match(/Property (\w+) As ([\w.%() ]+(?:\([^)]*\))?)/g);
     const parameterMatches = data.match(/Parameter (\w+) = "([^"]*)"/g);
     const indexMatches = data.match(/Index (\w+) On (\w+)/g);
     
     const properties = propertyMatches ? propertyMatches.map(m => {
-      const match = m.match(/Property (\w+) As ([\w.%()]+)/);
+      const match = m.match(/Property (\w+) As ([\w.%() ]+(?:\([^)]*\))?)/);
       if (match) {
-        const type = match[2].split('(')[0];
-        // Keep the % prefix for system types
-        return `${match[1]}: ${type}`;
+        const propertyName = match[1];
+        let fullType = match[2].trim();
+        
+        // deal with list and array types
+        if (fullType.toLowerCase().startsWith('list of ')) {
+          const elementType = fullType.replace(/list of /i, '').split('(')[0].trim();
+          return `${propertyName}: list Of ${elementType}`;
+        } else if (fullType.toLowerCase().startsWith('array of ')) {
+          const elementType = fullType.replace(/array of /i, '').split('(')[0].trim();
+          return `${propertyName}: array Of ${elementType}`;
+        }
+        
+        // remove (JsonName) part
+        const typeWithoutJsonName = fullType.split('(')[0].trim();
+        return `${propertyName}: ${typeWithoutJsonName}`;
       }
       return '';
     }) : [];
