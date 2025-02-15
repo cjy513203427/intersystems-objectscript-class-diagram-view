@@ -1,6 +1,6 @@
 # InterSystems ObjectScript Class Diagram View
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | [中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
 
 A Visual Studio Code extension that generates UML class diagrams for InterSystems ObjectScript classes. This extension not only generates class diagrams but also provides interactive viewing and navigation capabilities.
 

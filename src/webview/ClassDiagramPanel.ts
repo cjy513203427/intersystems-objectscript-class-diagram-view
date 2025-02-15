@@ -26,9 +26,15 @@ export class ClassDiagramPanel {
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._panel.webview.onDidReceiveMessage(
             async message => {
+                console.log('Received message:', message);
                 switch (message.command) {
                     case 'openClass':
+                        console.log('Opening class:', message.className);
                         await this.openClass(message.className);
+                        break;
+                    case 'openProperty':
+                        console.log('Opening attribute:', message.propertyName, 'in class:', message.className);
+                        await this.openAttribute(message.className, message.propertyName);
                         break;
                     case 'saveViewState':
                         this._viewState = {
@@ -51,107 +57,68 @@ export class ClassDiagramPanel {
      */
     private async openClass(className: string) {
         try {
-            // 1. First try: exact path with namespace structure
-            const classPath = className.replace(/\./g, path.sep);
-            const files = await vscode.workspace.findFiles(
-                new vscode.RelativePattern(this._baseDir, `**/${classPath}.cls`)
-            );
+            // Get workspace root
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage('No workspace folder found');
+                return;
+            }
 
-            if (files.length > 0) {
-                // Ensure exact match by checking the full path
-                const exactMatch = files.find(file => {
-                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
-                    const normalizedClass = classPath.replace(/\\/g, '/').toLowerCase();
-                    return normalizedPath.endsWith(`/${normalizedClass}.cls`);
-                });
+            // Try different possible file locations
+            const possiblePaths = [
+                // 1. Direct file in workspace root (keeping dots in filename)
+                path.join(workspaceFolder.uri.fsPath, `${className}.cls`),
+                // 2. File in parent directory (keeping dots in filename)
+                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className}.cls`),
+                // 3. File with namespace as directory structure
+                path.join(workspaceFolder.uri.fsPath, `${className.replace(/\./g, path.sep)}.cls`),
+                // 4. File in parent directory with namespace structure
+                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className.replace(/\./g, path.sep)}.cls`),
+                // 5. Simple filename in workspace root
+                path.join(workspaceFolder.uri.fsPath, `${className.split('.').pop()}.cls`),
+                // 6. Simple filename in parent directory
+                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className.split('.').pop()}.cls`)
+            ];
 
-                if (exactMatch) {
-                    const document = await vscode.workspace.openTextDocument(exactMatch);
-                    // Find the line containing the class definition
-                    const classDefLine = await this.findClassDefinitionLine(document, className);
-                    const editor = await vscode.window.showTextDocument(document);
-                    if (classDefLine !== -1) {
-                        // Move cursor to the class definition line
-                        const position = new vscode.Position(classDefLine, 0);
-                        editor.selection = new vscode.Selection(position, position);
-                        // Reveal the line in the center of the editor
-                        editor.revealRange(
-                            new vscode.Range(position, position),
-                            vscode.TextEditorRevealType.InCenter
-                        );
-                    }
+            console.log('Searching for class file in paths:', possiblePaths);
+
+            // Try each possible path
+            for (const filePath of possiblePaths) {
+                if (fs.existsSync(filePath)) {
+                    console.log('Found class file at:', filePath);
+                    await this.openAndShowFile(vscode.Uri.file(filePath), className);
                     return;
                 }
             }
 
-            // 2. Second try: search in parent directories
-            const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(this._baseDir));
-            if (workspaceFolder) {
-                const filesInWorkspace = await vscode.workspace.findFiles(
-                    new vscode.RelativePattern(workspaceFolder, `**/${classPath}.cls`)
-                );
+            // If not found in direct paths, try using workspace search
+            const searchPatterns = [
+                // Try with original class name (keeping dots)
+                new vscode.RelativePattern(workspaceFolder, `**/${className}.cls`),
+                // Try with namespace structure
+                new vscode.RelativePattern(workspaceFolder, `**/${className.replace(/\./g, '/')}.cls`),
+                // Try with simple class name
+                new vscode.RelativePattern(workspaceFolder, `**/${className.split('.').pop()}.cls`)
+            ];
 
-                // Ensure exact match by checking the full path
-                const exactMatch = filesInWorkspace.find(file => {
-                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
-                    const normalizedClass = classPath.replace(/\\/g, '/').toLowerCase();
-                    return normalizedPath.endsWith(`/${normalizedClass}.cls`);
-                });
+            for (const pattern of searchPatterns) {
+                const files = await vscode.workspace.findFiles(pattern);
+                if (files.length > 0) {
+                    // For exact matches, prefer files that match the full class name
+                    const exactMatch = files.find(file => {
+                        const fileName = path.basename(file.fsPath, '.cls');
+                        return fileName.toLowerCase() === className.toLowerCase();
+                    });
 
-                if (exactMatch) {
-                    const document = await vscode.workspace.openTextDocument(exactMatch);
-                    // Find the line containing the class definition
-                    const classDefLine = await this.findClassDefinitionLine(document, className);
-                    const editor = await vscode.window.showTextDocument(document);
-                    if (classDefLine !== -1) {
-                        // Move cursor to the class definition line
-                        const position = new vscode.Position(classDefLine, 0);
-                        editor.selection = new vscode.Selection(position, position);
-                        // Reveal the line in the center of the editor
-                        editor.revealRange(
-                            new vscode.Range(position, position),
-                            vscode.TextEditorRevealType.InCenter
-                        );
+                    if (exactMatch) {
+                        console.log('Found class file through workspace search:', exactMatch.fsPath);
+                        await this.openAndShowFile(exactMatch, className);
+                        return;
                     }
-                    return;
-                }
-            }
 
-            // 3. Third try: search by simple class name
-            const simpleClassName = className.split('.').pop() || className;
-            const filesByName = await vscode.workspace.findFiles(
-                new vscode.RelativePattern(workspaceFolder || this._baseDir, `**/${simpleClassName}.cls`)
-            );
-
-            if (filesByName.length > 0) {
-                // Only consider exact matches for the simple class name
-                const exactMatches = filesByName.filter(file => {
-                    const fileName = path.basename(file.fsPath, '.cls');
-                    return fileName.toLowerCase() === simpleClassName.toLowerCase();
-                });
-
-                // Among exact matches, prefer the one with matching namespace structure
-                const bestMatch = exactMatches.find(file => {
-                    const normalizedPath = file.fsPath.replace(/\\/g, '/').toLowerCase();
-                    const normalizedClass = className.toLowerCase().replace(/\./g, '/');
-                    return normalizedPath.includes(normalizedClass);
-                });
-
-                if (bestMatch) {
-                    const document = await vscode.workspace.openTextDocument(bestMatch);
-                    // Find the line containing the class definition
-                    const classDefLine = await this.findClassDefinitionLine(document, className);
-                    const editor = await vscode.window.showTextDocument(document);
-                    if (classDefLine !== -1) {
-                        // Move cursor to the class definition line
-                        const position = new vscode.Position(classDefLine, 0);
-                        editor.selection = new vscode.Selection(position, position);
-                        // Reveal the line in the center of the editor
-                        editor.revealRange(
-                            new vscode.Range(position, position),
-                            vscode.TextEditorRevealType.InCenter
-                        );
-                    }
+                    // If no exact match found, use the first file
+                    console.log('Found class file (non-exact match):', files[0].fsPath);
+                    await this.openAndShowFile(files[0], className);
                     return;
                 }
             }
@@ -159,12 +126,102 @@ export class ClassDiagramPanel {
             // If still not found, show error message with search paths
             vscode.window.showWarningMessage(
                 `Class file not found: ${className}.cls\nSearched paths:\n` +
-                `1. ${this._baseDir}/**/${classPath}.cls\n` +
-                `2. ${workspaceFolder?.uri.fsPath || ''}/**/${classPath}.cls\n` +
-                `3. **/${simpleClassName}.cls`
+                possiblePaths.map((p, i) => `${i + 1}. ${p}\n`).join('') +
+                searchPatterns.map((p, i) => `${possiblePaths.length + i + 1}. ${workspaceFolder.uri.fsPath}/${p.pattern}\n`).join('')
             );
         } catch (err) {
             vscode.window.showErrorMessage(`Failed to open class: ${err}`);
+        }
+    }
+
+    /**
+     * Helper method to open and show a file at the class definition
+     */
+    private async openAndShowFile(fileUri: vscode.Uri, className: string) {
+        const document = await vscode.workspace.openTextDocument(fileUri);
+        const classDefLine = await this.findClassDefinitionLine(document, className);
+        const editor = await vscode.window.showTextDocument(document);
+        if (classDefLine !== -1) {
+            const position = new vscode.Position(classDefLine, 0);
+            editor.selection = new vscode.Selection(position, position);
+            editor.revealRange(
+                new vscode.Range(position, position),
+                vscode.TextEditorRevealType.InCenter
+            );
+        }
+    }
+
+    /**
+     * Opens the attribute definition (Property, Parameter, or Index) in the class file
+     * @param className The name of the class containing the attribute
+     * @param propertyName The name of the attribute to locate
+     */
+    private async openAttribute(className: string, propertyName: string) {
+        try {
+            // First find and open the class file using openClass
+            await this.openClass(className);
+
+            // Get the active editor after openClass
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage(`Failed to open class ${className}`);
+                return;
+            }
+
+            const document = editor.document;
+
+            // Find the attribute definition within the class
+            const attributePatterns = [
+                // Match standard property declaration with As keyword
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s+As\\s+`, 'i'),
+                // Match property declaration with colon
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s*:`, 'i'),
+                // Match property declaration with parameters
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s*\\(`, 'i'),
+                // Match basic property declaration
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\b`, 'i'),
+                // Match parameter declaration with assignment
+                new RegExp(`^\\s*Parameter\\s+${propertyName}\\s*=`, 'i'),
+                // Match basic parameter declaration
+                new RegExp(`^\\s*Parameter\\s+${propertyName}\\b`, 'i'),
+                // Match index declaration with options
+                new RegExp(`^\\s*Index\\s+${propertyName}\\s+On\\s+`, 'i'),
+                // Match basic index declaration
+                new RegExp(`^\\s*Index\\s+${propertyName}\\b`, 'i')
+            ];
+            
+            // Search for the attribute definition
+            let attributeLine = -1;
+            for (let i = 0; i < document.lineCount; i++) {
+                const line = document.lineAt(i);
+                const text = line.text;
+                
+                // Try each pattern in order of specificity
+                for (const pattern of attributePatterns) {
+                    if (pattern.test(text)) {
+                        console.log('Found attribute match:', text);
+                        attributeLine = i;
+                        break;
+                    }
+                }
+                
+                if (attributeLine !== -1) break;
+            }
+
+            if (attributeLine !== -1) {
+                // Move cursor to the attribute definition line
+                const position = new vscode.Position(attributeLine, 0);
+                editor.selection = new vscode.Selection(position, position);
+                // Reveal the line in the center of the editor
+                editor.revealRange(
+                    new vscode.Range(position, position),
+                    vscode.TextEditorRevealType.InCenter
+                );
+            } else {
+                vscode.window.showWarningMessage(`Attribute ${propertyName} not found in class ${className}`);
+            }
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to open attribute: ${err}`);
         }
     }
 
@@ -352,48 +409,129 @@ export class ClassDiagramPanel {
                     // Initialize SVG interaction
                     function initializeSvgInteraction() {
                         const svg = container.querySelector('svg');
-                        if (!svg) return;
+                        if (!svg) {
+                            console.log('SVG not found');
+                            return;
+                        }
 
-                        // Handle text elements (class names)
+                        // Helper function to find the parent class name of a property/method
+                        function findParentClassName(element) {
+                            let current = element.closest('g');
+                            while (current && !current.matches('svg')) {
+                                const texts = Array.from(current.querySelectorAll('text'));
+                                // Find the first text that looks like a class name
+                                const classText = texts.find(t => {
+                                    const content = t.textContent?.trim();
+                                    return content && !content.includes(':') && !content.includes('(') && !content.startsWith('+');
+                                });
+                                
+                                if (classText) {
+                                    const className = classText.textContent.trim();
+                                    console.log('Found parent class:', className);
+                                    return className;
+                                }
+                                current = current.parentElement;
+                            }
+                            console.log('No parent class found');
+                            return null;
+                        }
+
+                        // Handle text elements (class names and properties)
                         svg.querySelectorAll('text').forEach(text => {
                             const content = text.textContent?.trim();
-                            if (content && !content.startsWith('+')) { // Skip method and attribute names
-                                text.style.cursor = 'pointer';
-                                text.addEventListener('click', () => {
-                                    // Save state before navigation
-                                    saveViewState();
-                                    console.log('Clicked class:', content);
-                                    vscode.postMessage({
-                                        command: 'openClass',
-                                        className: content
-                                    });
-                                });
-                            }
-                        });
+                            if (!content) return;
 
-                        // Handle class rectangles
-                        svg.querySelectorAll('g[id^="elem_"] rect').forEach(rect => {
-                            const g = rect.parentElement;
-                            if (g) {
-                                const text = g.querySelector('text');
-                                if (text && !text.textContent?.startsWith('+')) {
-                                    const className = text.textContent?.trim();
-                                    g.style.cursor = 'pointer';
-                                    g.addEventListener('click', () => {
-                                        // Save state before navigation
-                                        saveViewState();
-                                        console.log('Clicked class container:', className);
+                            console.log('Processing text element:', content);
+                            console.log('Text element parent:', text.parentElement?.tagName);
+                            console.log('Text element classes:', text.className);
+                            
+                            // Check if this is a property by looking at its content and context
+                            const isProperty = (
+                                // Standard property with type
+                                content.includes(':') ||
+                                // Parameter or Property without explicit type
+                                content.match(/^(Parameter|Property)\s+\w+(\s|$)/) ||
+                                // Parameter with assignment
+                                content.match(/^Parameter\s+\w+\s*=/) ||
+                                // Index declaration
+                                content.match(/^Index\s+\w+/)
+                            ) && !content.startsWith('class') && 
+                               !content.startsWith('Class') &&
+                               !content.startsWith('%');
+
+                            console.log('Is property?', isProperty);
+
+                            if (!isProperty) {
+                                // This is a class name
+                                if (!content.includes('(')) {
+                                    console.log('Setting up click handler for class:', content);
+                                    text.style.cursor = 'pointer';
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        console.log('Class clicked:', content);
                                         vscode.postMessage({
                                             command: 'openClass',
-                                            className: className
+                                            className: content
                                         });
                                     });
                                 }
+                            } else {
+                                // This is a property
+                                console.log('Processing property:', content);
+                                const parentClass = findParentClassName(text);
+                                if (parentClass) {
+                                    console.log('Found parent class for property:', parentClass);
+                                    
+                                    // Extract property name from the content
+                                    let propertyName = '';
+                                    const colonMatch = content.match(/^([^:]+):/);
+                                    const parameterMatch = content.match(/^Parameter\s+(\w+)(?:\s*=|\s|$)/);
+                                    const propertyMatch = content.match(/^Property\s+(\w+)(?:\s|$)/);
+                                    const indexMatch = content.match(/^Index\s+(\w+)(?:\s+On\s+|$)/);
+                                    
+                                    if (colonMatch) {
+                                        propertyName = colonMatch[1].trim();
+                                    } else if (parameterMatch) {
+                                        propertyName = parameterMatch[1].trim();
+                                    } else if (propertyMatch) {
+                                        propertyName = propertyMatch[1].trim();
+                                    } else if (indexMatch) {
+                                        propertyName = indexMatch[1].trim();
+                                    }
+                                    
+                                    console.log('Extracted property name:', propertyName);
+                                    
+                                    if (propertyName) {
+                                        console.log('Setting up click handler for property:', propertyName);
+                                        text.style.cursor = 'pointer';
+                                        text.addEventListener('click', (e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            console.log('Property clicked:', propertyName, 'in class:', parentClass);
+                                            vscode.postMessage({
+                                                command: 'openProperty',
+                                                className: parentClass,
+                                                propertyName: propertyName
+                                            });
+                                        });
+                                    } else {
+                                        console.log('No property name found in text:', content);
+                                    }
+                                } else {
+                                    console.log('No parent class found for property:', content);
+                                }
                             }
+                        });
+
+                        // Disable pointer events on rectangles
+                        svg.querySelectorAll('rect').forEach(rect => {
+                            rect.style.pointerEvents = 'none';
                         });
                     }
 
                     // Initialize interaction
+                    console.log('Initializing SVG interaction');
                     initializeSvgInteraction();
                     
                     // Zoom functions

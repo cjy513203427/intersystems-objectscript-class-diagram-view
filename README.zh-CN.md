@@ -1,6 +1,6 @@
 # InterSystems ObjectScript 类图查看器
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | [中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
 
 一个用于生成 InterSystems ObjectScript 类 UML 图的 Visual Studio Code 扩展。这个扩展不仅能生成类图，还提供了交互式的查看和导航功能。
 

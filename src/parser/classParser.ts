@@ -32,7 +32,7 @@ export class ClassParser {
 
   private static extractAttributes(data: string): string[] {
     const propertyMatches = data.match(/Property (\w+) As ([\w.%() ]+(?:\([^)]*\))?)/g);
-    const parameterMatches = data.match(/Parameter (\w+) = "([^"]*)"/g);
+    const parameterMatches = data.match(/Parameter (\w+)(?:\s*=\s*(?:"([^"]*)"|\s*([^;\s]+))|\s+As\s+([\w.%() ]+)|\s*=\s*(\d+)|\s+As\s+Boolean\s*=\s*(\d+))?/g);
     const indexMatches = data.match(/Index (\w+) On (\w+)/g);
     
     const properties = propertyMatches ? propertyMatches.map(m => {
@@ -58,8 +58,28 @@ export class ClassParser {
     }) : [];
     
     const parameters = parameterMatches ? parameterMatches.map(m => {
-      const match = m.match(/Parameter (\w+) = "([^"]*)"/);
-      return match ? `${match[1]}: String` : '';
+      // Try different parameter formats
+      const stringMatch = m.match(/Parameter (\w+)\s*=\s*"([^"]*)"/);
+      const typeMatch = m.match(/Parameter (\w+)\s+As\s+([\w.%() ]+)/);
+      const numberMatch = m.match(/Parameter (\w+)\s*=\s*(\d+)/);
+      const booleanMatch = m.match(/Parameter (\w+)\s+As\s+Boolean\s*=\s*(\d+)/);
+      const directValueMatch = m.match(/Parameter (\w+)\s*=\s*([^;\s"]+)/);
+      
+      if (stringMatch) {
+        return `${stringMatch[1]}: String`;
+      } else if (typeMatch) {
+        return `${typeMatch[1]}: ${typeMatch[2]}`;
+      } else if (numberMatch) {
+        return `${numberMatch[1]}: Integer`;
+      } else if (booleanMatch) {
+        return `${booleanMatch[1]}: Boolean`;
+      } else if (directValueMatch) {
+        return `${directValueMatch[1]}: String`;
+      } else {
+        // Basic parameter without type or value
+        const basicMatch = m.match(/Parameter (\w+)/);
+        return basicMatch ? `${basicMatch[1]}: String` : '';
+      }
     }) : [];
     
     const indexes = indexMatches ? indexMatches.map(m => {
@@ -67,7 +87,7 @@ export class ClassParser {
       return match ? `Index ${match[1]} On ${match[2]}` : '';
     }) : [];
     
-    return [...properties, ...parameters, ...indexes];
+    return [...properties, ...parameters, ...indexes].filter(Boolean);
   }
 
   private static extractMethods(data: string): string[] {
