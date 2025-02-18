@@ -64,7 +64,7 @@ export class ClassDiagramPanel {
                 return;
             }
 
-            // Try different possible file locations
+            // Try different possible file locations with full namespace path first
             const possiblePaths = [
                 // 1. Direct file in workspace root (keeping dots in filename)
                 path.join(workspaceFolder.uri.fsPath, `${className}.cls`),
@@ -73,11 +73,7 @@ export class ClassDiagramPanel {
                 // 3. File with namespace as directory structure
                 path.join(workspaceFolder.uri.fsPath, `${className.replace(/\./g, path.sep)}.cls`),
                 // 4. File in parent directory with namespace structure
-                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className.replace(/\./g, path.sep)}.cls`),
-                // 5. Simple filename in workspace root
-                path.join(workspaceFolder.uri.fsPath, `${className.split('.').pop()}.cls`),
-                // 6. Simple filename in parent directory
-                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className.split('.').pop()}.cls`)
+                path.join(path.dirname(workspaceFolder.uri.fsPath), `${className.replace(/\./g, path.sep)}.cls`)
             ];
 
             console.log('Searching for class file in paths:', possiblePaths);
@@ -91,43 +87,34 @@ export class ClassDiagramPanel {
                 }
             }
 
-            // If not found in direct paths, try using workspace search
-            const searchPatterns = [
-                // Try with original class name (keeping dots)
-                new vscode.RelativePattern(workspaceFolder, `**/${className}.cls`),
-                // Try with namespace structure
-                new vscode.RelativePattern(workspaceFolder, `**/${className.replace(/\./g, '/')}.cls`),
-                // Try with simple class name
-                new vscode.RelativePattern(workspaceFolder, `**/${className.split('.').pop()}.cls`)
-            ];
+            // If not found in direct paths, try using workspace search with full namespace
+            const files = await vscode.workspace.findFiles(`**/${className.replace(/\./g, '/')}.cls`);
+            if (files.length > 0) {
+                console.log('Found class file through workspace search:', files[0].fsPath);
+                await this.openAndShowFile(files[0], className);
+                return;
+            }
 
-            for (const pattern of searchPatterns) {
-                const files = await vscode.workspace.findFiles(pattern);
-                if (files.length > 0) {
-                    // For exact matches, prefer files that match the full class name
-                    const exactMatch = files.find(file => {
-                        const fileName = path.basename(file.fsPath, '.cls');
-                        return fileName.toLowerCase() === className.toLowerCase();
-                    });
-
-                    if (exactMatch) {
-                        console.log('Found class file through workspace search:', exactMatch.fsPath);
-                        await this.openAndShowFile(exactMatch, className);
-                        return;
-                    }
-
-                    // If no exact match found, use the first file
-                    console.log('Found class file (non-exact match):', files[0].fsPath);
-                    await this.openAndShowFile(files[0], className);
+            // If still not found, try a more thorough search but verify class name matches
+            const simpleClassName = className.split('.').pop() || className;
+            const allFiles = await vscode.workspace.findFiles(`**/${simpleClassName}.cls`);
+            
+            // Read each file to verify it contains the correct class
+            for (const file of allFiles) {
+                const document = await vscode.workspace.openTextDocument(file);
+                const text = document.getText();
+                // Look for class definition with exact namespace
+                const classDefRegex = new RegExp(`\\bClass\\s+${className.replace(/\./g, '\\.')}\\b`, 'i');
+                if (classDefRegex.test(text)) {
+                    console.log('Found matching class definition in:', file.fsPath);
+                    await this.openAndShowFile(file, className);
                     return;
                 }
             }
 
-            // If still not found, show error message with search paths
+            // If still not found, show error message
             vscode.window.showWarningMessage(
-                `Class file not found: ${className}.cls\nSearched paths:\n` +
-                possiblePaths.map((p, i) => `${i + 1}. ${p}\n`).join('') +
-                searchPatterns.map((p, i) => `${possiblePaths.length + i + 1}. ${workspaceFolder.uri.fsPath}/${p.pattern}\n`).join('')
+                `Class file not found: ${className}.cls\nSearched in workspace with full namespace path.`
             );
         } catch (err) {
             vscode.window.showErrorMessage(`Failed to open class: ${err}`);
