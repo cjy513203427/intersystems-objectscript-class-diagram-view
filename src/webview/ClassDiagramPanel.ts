@@ -159,6 +159,10 @@ export class ClassDiagramPanel {
 
             // Find the attribute definition within the class
             const attributePatterns = [
+                // Match property with JsonName and other modifiers
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s+As\\s+[^\\[]+\\s*\\[.*\\]`, 'i'),
+                // Match property with JsonName without As keyword
+                new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s*\\[.*\\]`, 'i'),
                 // Match standard property declaration with As keyword
                 new RegExp(`^\\s*(?:Property|property)\\s+${propertyName}\\s+As\\s+`, 'i'),
                 // Match property declaration with colon
@@ -434,23 +438,27 @@ export class ClassDiagramPanel {
                             
                             // Check if this is a property by looking at its content and context
                             const isProperty = (
+                                // First check if it starts with Property keyword
+                                content.match(/^Property\s+/i) ||
                                 // Standard property with type
                                 content.includes(':') ||
-                                // Parameter or Property without explicit type
-                                content.match(/^(Parameter|Property)\s+\w+(\s|$)/) ||
-                                // Parameter with assignment
-                                content.match(/^Parameter\s+\w+\s*=/) ||
+                                // Parameter declaration
+                                content.match(/^Parameter\s+\w+(\s|=|$)/) ||
                                 // Index declaration
-                                content.match(/^Index\s+\w+/)
-                            ) && !content.startsWith('class') && 
-                               !content.startsWith('Class') &&
-                               !content.startsWith('%');
+                                content.match(/^Index\s+\w+/) ||
+                                // Property type reference (e.g. "Class: %String")
+                                content.match(/^Class:\s+/)
+                            );
 
                             console.log('Is property?', isProperty);
 
                             if (!isProperty) {
                                 // This is a class name
                                 if (!content.includes('(')) {
+                                    // Skip if it's a type reference (e.g. "Class: %String")
+                                    if (content.startsWith('Class:')) {
+                                        return;
+                                    }
                                     console.log('Setting up click handler for class:', content);
                                     text.style.cursor = 'pointer';
                                     text.addEventListener('click', (e) => {
