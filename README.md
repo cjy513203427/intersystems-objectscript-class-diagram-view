@@ -18,8 +18,8 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 
 ## Requirements
 
-- Visual Studio Code 1.96.0 or higher
-- Java Runtime Environment (JRE) for PlantUML diagram generation
+- Visual Studio Code 1.74.0 or higher
+- Java Runtime Environment (JRE) 8 or higher for PlantUML diagram generation
 - InterSystems ObjectScript files (`.cls`)
 
 ## Installation
