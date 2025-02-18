@@ -36,6 +36,10 @@ export class ClassDiagramPanel {
                         console.log('Opening attribute:', message.propertyName, 'in class:', message.className);
                         await this.openAttribute(message.className, message.propertyName);
                         break;
+                    case 'openMethod':
+                        console.log('Opening method:', message.methodName, 'in class:', message.className);
+                        await this.openMethod(message.className, message.methodName);
+                        break;
                     case 'saveViewState':
                         this._viewState = {
                             scrollX: message.scrollX,
@@ -213,6 +217,74 @@ export class ClassDiagramPanel {
             }
         } catch (err) {
             vscode.window.showErrorMessage(`Failed to open attribute: ${err}`);
+        }
+    }
+
+    /**
+     * Opens the method definition in the class file
+     * @param className The name of the class containing the method
+     * @param methodName The name of the method to locate
+     */
+    private async openMethod(className: string, methodName: string) {
+        try {
+            // First find and open the class file using openClass
+            await this.openClass(className);
+
+            // Get the active editor after openClass
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage(`Failed to open class ${className}`);
+                return;
+            }
+
+            const document = editor.document;
+
+            // Find the method definition within the class
+            const methodPatterns = [
+                // Match method with return type and modifiers
+                new RegExp(`^\\s*(?:Method|ClassMethod)\\s+${methodName}\\s*\\([^)]*\\)\\s+As\\s+[^\\[]+\\s*\\[.*\\]`, 'i'),
+                // Match method with return type
+                new RegExp(`^\\s*(?:Method|ClassMethod)\\s+${methodName}\\s*\\([^)]*\\)\\s+As\\s+`, 'i'),
+                // Match method with parameters and modifiers
+                new RegExp(`^\\s*(?:Method|ClassMethod)\\s+${methodName}\\s*\\([^)]*\\)\\s*\\[.*\\]`, 'i'),
+                // Match method with parameters
+                new RegExp(`^\\s*(?:Method|ClassMethod)\\s+${methodName}\\s*\\([^)]*\\)`, 'i'),
+                // Match basic method declaration
+                new RegExp(`^\\s*(?:Method|ClassMethod)\\s+${methodName}\\b`, 'i')
+            ];
+            
+            // Search for the method definition
+            let methodLine = -1;
+            for (let i = 0; i < document.lineCount; i++) {
+                const line = document.lineAt(i);
+                const text = line.text;
+                
+                // Try each pattern in order of specificity
+                for (const pattern of methodPatterns) {
+                    if (pattern.test(text)) {
+                        console.log('Found method match:', text);
+                        methodLine = i;
+                        break;
+                    }
+                }
+                
+                if (methodLine !== -1) break;
+            }
+
+            if (methodLine !== -1) {
+                // Move cursor to the method definition line
+                const position = new vscode.Position(methodLine, 0);
+                editor.selection = new vscode.Selection(position, position);
+                // Reveal the line in the center of the editor
+                editor.revealRange(
+                    new vscode.Range(position, position),
+                    vscode.TextEditorRevealType.InCenter
+                );
+            } else {
+                vscode.window.showWarningMessage(`Method ${methodName} not found in class ${className}`);
+            }
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to open method: ${err}`);
         }
     }
 
@@ -433,29 +505,25 @@ export class ClassDiagramPanel {
                             if (!content) return;
 
                             console.log('Processing text element:', content);
-                            console.log('Text element parent:', text.parentElement?.tagName);
-                            console.log('Text element classes:', text.className);
                             
                             // Check if this is a property by looking at its content and context
                             const isProperty = (
-                                // First check if it starts with Property keyword
                                 content.match(/^Property\s+/i) ||
-                                // Standard property with type
                                 content.includes(':') ||
-                                // Parameter declaration
                                 content.match(/^Parameter\s+\w+(\s|=|$)/) ||
-                                // Index declaration
                                 content.match(/^Index\s+\w+/) ||
-                                // Property type reference (e.g. "Class: %String")
                                 content.match(/^Class:\s+/)
                             );
 
-                            console.log('Is property?', isProperty);
+                            // Check if this is a method by looking for parentheses and not being a property
+                            const isMethod = content.includes('(') && !isProperty;
 
-                            if (!isProperty) {
+                            console.log('Is property?', isProperty);
+                            console.log('Is method?', isMethod);
+
+                            if (!isProperty && !isMethod) {
                                 // This is a class name
                                 if (!content.includes('(')) {
-                                    // Skip if it's a type reference (e.g. "Class: %String")
                                     if (content.startsWith('Class:')) {
                                         return;
                                     }
@@ -471,13 +539,31 @@ export class ClassDiagramPanel {
                                         });
                                     });
                                 }
+                            } else if (isMethod) {
+                                // This is a method
+                                console.log('Processing method:', content);
+                                const parentClass = findParentClassName(text);
+                                if (parentClass) {
+                                    // Extract method name from the content
+                                    const methodName = content.split('(')[0].trim();
+                                    console.log('Setting up click handler for method:', methodName);
+                                    text.style.cursor = 'pointer';
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        console.log('Method clicked:', methodName, 'in class:', parentClass);
+                                        vscode.postMessage({
+                                            command: 'openMethod',
+                                            className: parentClass,
+                                            methodName: methodName
+                                        });
+                                    });
+                                }
                             } else {
                                 // This is a property
                                 console.log('Processing property:', content);
                                 const parentClass = findParentClassName(text);
                                 if (parentClass) {
-                                    console.log('Found parent class for property:', parentClass);
-                                    
                                     // Extract property name from the content
                                     let propertyName = '';
                                     const colonMatch = content.match(/^([^:]+):/);
@@ -495,8 +581,6 @@ export class ClassDiagramPanel {
                                         propertyName = indexMatch[1].trim();
                                     }
                                     
-                                    console.log('Extracted property name:', propertyName);
-                                    
                                     if (propertyName) {
                                         console.log('Setting up click handler for property:', propertyName);
                                         text.style.cursor = 'pointer';
@@ -510,11 +594,7 @@ export class ClassDiagramPanel {
                                                 propertyName: propertyName
                                             });
                                         });
-                                    } else {
-                                        console.log('No property name found in text:', content);
                                     }
-                                } else {
-                                    console.log('No parent class found for property:', content);
                                 }
                             }
                         });
