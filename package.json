@@ -5,7 +5,7 @@
   "version": "0.0.1",
   "icon": "images/icon.png",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
@@ -15,6 +15,10 @@
     "onFileSystem:cls"
   ],
   "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view.git"
+  },
   "contributes": {
     "commands": [
       {
