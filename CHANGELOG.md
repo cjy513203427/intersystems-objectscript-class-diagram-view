@@ -27,7 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 💥 Breaking Changes
 - None
 
-## [0.1.0] - 2025-02-19
+## [0.0.2] - 2024-02-19
+
+### 📝 Documentation
+- Add animated GIF demonstrations for installation and usage
+- Add detailed known issues section in README
+  - External library navigation limitations
+  - Subclass generation functionality
+  - Large project performance considerations
+
+## [0.0.1] - 2024-02-19
 
 ### 🎉 First Release
 - Initial project setup with basic functionality framework
@@ -41,5 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic usage documentation
 - Development setup guide
 
-[Unreleased]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/releases/tag/v0.1.0
+[Unreleased]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/releases/tag/v0.0.1
