@@ -23,8 +23,8 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 - InterSystems ObjectScript files (`.cls`)
 
 ## Installation
-
-1. Install the extension through VS Code Marketplace
+1. Install the extension through VS 
+![install plugin](images/install_plugin.gif)
 2. Ensure you have Java Runtime Environment (JRE) installed on your system
 3. Restart VS Code after installation
 
@@ -34,9 +34,11 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 1. Open a `.cls` file in the editor
 2. Generate a class diagram using one of these methods:
    - Press `Ctrl+Alt+U`
+   ![press shortcut](images/press_shortcut.gif)
    - Right-click the file and select "Generate Class Diagram"
+   ![right click file](images/right_click_file.gif)
    - Right-click a folder containing `.cls` files and select "Generate Class Diagram"
-
+   ![right click folder](images/right_click_folder.gif)
 ### Interactive Features
 - Click on diagram elements to:
   - Jump to class definitions
@@ -56,6 +58,12 @@ This extension contributes the following commands:
 * `intersystems-objectscript-class-diagram-view.generateClassDiagram`: Generate a class diagram for the selected file or folder
 
 ## Known Issues
+
+- **External Library Navigation**: Unable to navigate to intersystem objectscript library definitions through click interactions
+- **Subclass Generation**: Missing functionality to generate subclass diagrams for the current class
+- **Large Project Performance**: 
+  - Generating diagrams for large folders via right-click may experience significant delays
+  - Generated webview/SVG for large projects lacks smooth zoom functionality and proper scaling
 
 Please report any issues on the GitHub repository.
 

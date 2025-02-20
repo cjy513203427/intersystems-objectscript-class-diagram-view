@@ -8,23 +8,23 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 - Generierung von UML-Klassendiagrammen aus `.cls`-Dateien
 - Unterstützung für Diagrammerstellung auf Klassen- und Ordnerebene
-- Kontextmenü-Integration in Editor und Explorer
+- Integration des Kontextmenüs sowohl im Editor als auch im Explorer
 - Visualisierung von Klassenbeziehungen, Eigenschaften und Methoden
-- Zuverlässige Diagrammdarstellung basierend auf PlantUML
-- Interaktives Durchsuchen von Klassendiagrammen
+- Basierend auf PlantUML für zuverlässige Diagrammdarstellung
+- Interaktive Klassendiagramm-Navigation
   - Klicken Sie auf Klassennamen, Eigenschaften oder Methoden, um schnell zum entsprechenden Code zu springen
-  - In HTML eingebettete SVG-Diagramme für reibungslose Interaktion
+  - SVG-Diagramme in HTML eingebettet für reibungslose Interaktion
   - Visuelle Navigation von Klassenbeziehungen
 
 ## Anforderungen
 
 - Visual Studio Code 1.74.0 oder höher
-- Java Runtime Environment (JRE) 8 oder höher für PlantUML-Diagrammgenerierung
+- Java Runtime Environment (JRE) 8 oder höher für PlantUML-Diagrammerstellung
 - InterSystems ObjectScript-Dateien (`.cls`)
 
 ## Installation
-
-1. Installieren Sie die Erweiterung über den VS Code Marketplace
+1. Installieren Sie die Erweiterung über VS Code
+![Plugin installieren](images/install_plugin.gif)
 2. Stellen Sie sicher, dass Java Runtime Environment (JRE) auf Ihrem System installiert ist
 3. Starten Sie VS Code nach der Installation neu
 
@@ -34,8 +34,11 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 1. Öffnen Sie eine `.cls`-Datei im Editor
 2. Generieren Sie ein Klassendiagramm mit einer dieser Methoden:
    - Drücken Sie `Strg+Alt+U`
-   - Klicken Sie mit der rechten Maustaste auf die Datei und wählen Sie "Klassendiagramm generieren"
-   - Klicken Sie mit der rechten Maustaste auf einen Ordner mit `.cls`-Dateien und wählen Sie "Klassendiagramm generieren"
+   ![Tastenkombination drücken](images/press_shortcut.gif)
+   - Rechtsklick auf die Datei und wählen Sie "Klassendiagramm generieren"
+   ![Rechtsklick auf Datei](images/right_click_file.gif)
+   - Rechtsklick auf einen Ordner mit `.cls`-Dateien und wählen Sie "Klassendiagramm generieren"
+   ![Rechtsklick auf Ordner](images/right_click_folder.gif)
 
 ### Interaktive Funktionen
 - Klicken Sie auf Diagrammelemente, um:
@@ -47,7 +50,7 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 ## Tastenkombinationen
 
-- `Strg+Alt+U`: Klassendiagramm für die aktuell geöffnete `.cls`-Datei generieren
+- `Strg+Alt+U`: Generiert ein Klassendiagramm für die aktuell geöffnete `.cls`-Datei
 
 ## Erweiterungseinstellungen
 
@@ -57,7 +60,13 @@ Diese Erweiterung stellt folgende Befehle bereit:
 
 ## Bekannte Probleme
 
-Bitte melden Sie Probleme im GitHub-Repository.
+- **Navigation in externen Bibliotheken**: Keine Navigation zu InterSystems ObjectScript-Bibliotheksdefinitionen durch Klickinteraktionen möglich
+- **Unterklassen-Generierung**: Fehlende Funktionalität zur Generierung von Unterklassendiagrammen für die aktuelle Klasse
+- **Performance bei großen Projekten**:
+  - Generierung von Diagrammen für große Ordner per Rechtsklick kann erhebliche Verzögerungen aufweisen
+  - Generierte Webview/SVG für große Projekte mangelt es an flüssiger Zoomfunktionalität und korrekter Skalierung
+
+Bitte melden Sie alle Probleme im GitHub-Repository.
 
 ## Mitwirken
 
@@ -75,5 +84,5 @@ Erste Veröffentlichung der InterSystems ObjectScript Klassendiagramm-Ansicht
 - Grundlegende Klassendiagramm-Generierung
 - Unterstützung für Einzel- und Ordnerverarbeitung
 - Kontextmenü-Integration
-- Tastenkombinationsunterstützung
-- Interaktive Klassendiagramm-Browsing-Funktionen 
+- Tastenkombinationen-Unterstützung
+- Interaktive Klassendiagramm-Navigationsfunktionen 
