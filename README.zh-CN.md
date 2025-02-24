@@ -18,7 +18,7 @@
 
 ## 系统要求
 
-- Visual Studio Code 1.74.0 或更高版本
+- Visual Studio Code 1.96.0 或更高版本
 - Java 运行时环境 (JRE) 8 或更高版本（用于 PlantUML 图表生成）
 - InterSystems ObjectScript 文件 (`.cls`)
 

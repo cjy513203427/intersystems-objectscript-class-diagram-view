@@ -18,7 +18,7 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 ## Anforderungen
 
-- Visual Studio Code 1.74.0 oder höher
+- Visual Studio Code 1.96.0 oder höher
 - Java Runtime Environment (JRE) 8 oder höher für PlantUML-Diagrammerstellung
 - InterSystems ObjectScript-Dateien (`.cls`)
 
