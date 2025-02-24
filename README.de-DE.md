@@ -75,23 +75,3 @@ Beiträge sind willkommen! Reichen Sie gerne einen Pull Request ein.
 ## Lizenz
 
 Diese Erweiterung steht unter der MIT-Lizenz.
-
-## Versionshinweise
-
-### 0.0.2
-
-- 📝 Dokumentation
-  - Hinzufügung von animierten GIFs für Installation und Verwendung
-  - Detaillierte Beschreibung bekannter Probleme im README
-    - Einschränkungen bei der Navigation in externen Bibliotheken
-    - Funktionalität zur Unterklassengenerierung
-    - Performanceaspekte bei großen Projekten
-
-### 0.0.1
-
-Erste Veröffentlichung der InterSystems ObjectScript Klassendiagramm-Ansicht
-- Grundlegende Klassendiagramm-Generierung
-- Unterstützung für Einzel- und Ordnerverarbeitung
-- Kontextmenü-Integration
-- Tastenkombinationen-Unterstützung
-- Interaktive Klassendiagramm-Navigationsfunktionen 

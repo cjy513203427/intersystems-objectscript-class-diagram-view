@@ -74,14 +74,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This extension is licensed under the MIT License.
-
-## Release Notes
-
-### 0.0.1
-
-Initial release of InterSystems ObjectScript Class Diagram View
-- Basic class diagram generation
-- Support for single file and folder processing
-- Context menu integration
-- Keyboard shortcut support
-- Interactive class diagram browsing features

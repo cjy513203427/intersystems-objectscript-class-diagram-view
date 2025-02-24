@@ -8,9 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 New Features
-- Add InterSystems ObjectScript class diagram visualization
-- Add class diagram viewing support in VSCode extension
-- Add PlantUML integration support
 
 ### 🐛 Bug Fixes
 - None
@@ -19,13 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None
 
 ### 🔧 Maintenance
-- None
 
 ### ⚡️ Performance Improvements
 - None
 
 ### 💥 Breaking Changes
 - None
+
+## [0.0.3] - 2025-02-24
+
+### 🎨 UI Changes
+- 🖼️ Update extension icon
+
+### 🔧 Maintenance
+- ⚙️ Update minimum VSCode version requirement from 1.74.0 to 1.96.0
 
 ## [0.0.2] - 2024-02-19
 
