@@ -39,14 +39,14 @@
         {
           "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
           "when": "resourceExtname == .cls",
-          "group": "navigation"
+          "group": "z_commands"
         }
       ],
       "explorer/context": [
         {
           "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
           "when": "resourceExtname == .cls || explorerResourceIsFolder",
-          "group": "navigation"
+          "group": "z_commands"
         }
       ]
     }
