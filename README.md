@@ -21,8 +21,8 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 
 | OS      | Required | Optional (for local PlantUML generation) |
 |---------|---------|-----------------------------------------|
-| Windows | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ |
-| Linux   | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ <br> - Graphviz |
+| Windows | - VSCode 1.96.0+  <br> - ObjectScript Class Files(`.cls`) | - Java 8+ |
+| Linux   | - VSCode 1.96.0+  <br> - ObjectScript Class Files(`.cls`) | - Java 8+ <br> - Graphviz |
 
 💡 *If using the PlantUML Web Server, Java and Graphviz are not required.*
 
@@ -51,10 +51,13 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 
 ### Using PlantUML Web Server
 When choosing the "PlantUML Web Server" option:
+
+![Remote PlantUML Web Server](images/remote_plantuml_web_server.gif)
 - No local Java installation is required
 - The diagram is generated on the PlantUML Web Server
 - You can copy the URL to clipboard or open it directly in your browser
 - The URL can be shared with others to view the diagram
+
 
 ### Interactive Features
 - Click on diagram elements to:

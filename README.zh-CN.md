@@ -21,8 +21,8 @@
 
 | 操作系统 | 必需 | 可选（用于本地 PlantUML 生成） |
 |---------|---------|-----------------------------------------|
-| Windows | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java 运行时环境 (JRE) 8+ |
-| Linux   | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java 运行时环境 (JRE) 8+ <br> - Graphviz |
+| Windows | - VSCode 1.96.0+  <br> - ObjectScript 类文件(`.cls`) | - Java 8+ |
+| Linux   | - VSCode 1.96.0+  <br> - ObjectScript 类文件(`.cls`) | - Java 8+ <br> - Graphviz |
 
 💡 *如果使用 PlantUML Web 服务器，则不需要 Java 和 Graphviz。*
 
@@ -49,6 +49,8 @@
 
 ### 使用 PlantUML Web 服务器
 当选择"PlantUML Web 服务器"选项时：
+
+![远程 PlantUML Web 服务器](images/remote_plantuml_web_server.gif)
 - 无需本地安装 Java
 - 图表在 PlantUML Web 服务器上生成
 - 您可以将 URL 复制到剪贴板或直接在浏览器中打开

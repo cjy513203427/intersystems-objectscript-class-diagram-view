@@ -8,12 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 New Features
-- Added support for generating class diagrams using PlantUML Web Server (no Java required)
-- Implemented user choice between local Java and PlantUML Web Server for diagram generation
-- Added ability to copy PlantUML URL to clipboard or open directly in browser
+- None
 
 ### 🐛 Bug Fixes
 - None
+
+### 📝 Documentation
+- None
+
+### 🔧 Maintenance
+- None
+
+### ⚡️ Performance Improvements
+- None
+
+### 💥 Breaking Changes
+- None
+
+## [0.1.0] - 2025-02-28
+
+### 🚀 New Features
+- Added support for generating class diagrams using PlantUML Web Server (no Java required)
+- Implemented user choice between local Java and PlantUML Web Server for diagram generation
+- Added ability to copy PlantUML URL to clipboard or open directly in browser
 
 ### 📝 Documentation
 - Updated README files (English, Chinese, German) with new PlantUML Web Server functionality
@@ -29,9 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ⚡️ Performance Improvements
 - Streamlined diagram generation process for PlantUML Web Server option
 - Reduced code complexity by removing unnecessary WebView creation for web server URLs
-
-### 💥 Breaking Changes
-- None
 
 ## [0.0.3] - 2025-02-24
 
@@ -64,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic usage documentation
 - Development setup guide
 
-[Unreleased]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.3...v0.1.0
 [0.0.3]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/releases/tag/v0.0.1

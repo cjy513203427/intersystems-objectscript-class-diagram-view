@@ -21,8 +21,8 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 | Betriebssystem | Erforderlich | Optional (für lokale PlantUML-Generierung) |
 |---------|---------|-----------------------------------------|
-| Windows | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ |
-| Linux   | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ <br> - Graphviz |
+| Windows | - VSCode 1.96.0+  <br> - ObjectScript Klassendateien(`.cls`) | - Java 8+ |
+| Linux   | - VSCode 1.96.0+  <br> - ObjectScript Klassendateien(`.cls`) | - Java 8+ <br> - Graphviz |
 
 💡 *Bei Verwendung des PlantUML Web Servers werden Java und Graphviz nicht benötigt.*
 
@@ -49,6 +49,8 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 ### Verwendung des PlantUML Web Servers
 Bei Auswahl der Option "PlantUML Web Server":
+
+![Remote PlantUML Web Server](images/remote_plantuml_web_server.gif)
 - Keine lokale Java-Installation erforderlich
 - Das Diagramm wird auf dem PlantUML Web Server generiert
 - Sie können die URL in die Zwischenablage kopieren oder direkt im Browser öffnen
