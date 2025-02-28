@@ -19,9 +19,12 @@
 
 ## 系统要求
 
-- Visual Studio Code 1.96.0 或更高版本
-- Java 运行时环境 (JRE) 8 或更高版本（用于本地 PlantUML 图表生成，如使用 PlantUML Web 服务器则可选）
-- InterSystems ObjectScript 文件 (`.cls`)
+| 操作系统 | 必需 | 可选（用于本地 PlantUML 生成） |
+|---------|---------|-----------------------------------------|
+| Windows | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java 运行时环境 (JRE) 8+ |
+| Linux   | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java 运行时环境 (JRE) 8+ <br> - Graphviz |
+
+💡 *如果使用 PlantUML Web 服务器，则不需要 Java 和 Graphviz。*
 
 ## 安装
 1. 通过 VS Code 安装扩展
@@ -40,7 +43,7 @@
    ![右键点击文件](images/right_click_file.gif)
    - 右键点击包含 `.cls` 文件的文件夹并选择"生成类图"
    ![右键点击文件夹](images/right_click_folder.gif)
-3. 选择您偏好的生成方式：
+3. 在提示时，选择您偏好的生成方式：
    - **本地 Java**：使用本地 Java 安装生成图表并在 VS Code 中显示
    - **PlantUML Web 服务器**：生成可在任何浏览器中打开的 URL（无需 Java）
 

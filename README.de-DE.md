@@ -11,6 +11,7 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 - Integration des Kontextmenüs sowohl im Editor als auch im Explorer
 - Visualisierung von Klassenbeziehungen, Eigenschaften und Methoden
 - Basierend auf PlantUML für zuverlässige Diagrammdarstellung
+- Generierung von Diagrammen mit PlantUML Web Server (keine Java-Installation erforderlich)
 - Interaktive Klassendiagramm-Navigation
   - Klicken Sie auf Klassennamen, Eigenschaften oder Methoden, um schnell zum entsprechenden Code zu springen
   - SVG-Diagramme in HTML eingebettet für reibungslose Interaktion
@@ -18,14 +19,17 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 
 ## Anforderungen
 
-- Visual Studio Code 1.96.0 oder höher
-- Java Runtime Environment (JRE) 8 oder höher für PlantUML-Diagrammerstellung
-- InterSystems ObjectScript-Dateien (`.cls`)
+| Betriebssystem | Erforderlich | Optional (für lokale PlantUML-Generierung) |
+|---------|---------|-----------------------------------------|
+| Windows | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ |
+| Linux   | - Visual Studio Code 1.96.0+  <br> - InterSystems ObjectScript (`.cls`) | - Java Runtime Environment (JRE) 8+ <br> - Graphviz |
+
+💡 *Bei Verwendung des PlantUML Web Servers werden Java und Graphviz nicht benötigt.*
 
 ## Installation
 1. Installieren Sie die Erweiterung über VS Code
 ![Plugin installieren](images/install_plugin.gif)
-2. Stellen Sie sicher, dass Java Runtime Environment (JRE) auf Ihrem System installiert ist
+2. Stellen Sie sicher, dass Java Runtime Environment (JRE) auf Ihrem System installiert ist (optional bei Verwendung des PlantUML Web Servers)
 3. Starten Sie VS Code nach der Installation neu
 
 ## Verwendung
@@ -39,6 +43,16 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
    ![Rechtsklick auf Datei](images/right_click_file.gif)
    - Rechtsklick auf einen Ordner mit `.cls`-Dateien und wählen Sie "Klassendiagramm generieren"
    ![Rechtsklick auf Ordner](images/right_click_folder.gif)
+3. Wählen Sie bei Aufforderung Ihre bevorzugte Generierungsmethode:
+   - **Lokales Java**: Generiert das Diagramm mit lokaler Java-Installation und zeigt es in VS Code an
+   - **PlantUML Web Server**: Generiert eine URL, die in jedem Browser geöffnet werden kann (keine Java-Installation erforderlich)
+
+### Verwendung des PlantUML Web Servers
+Bei Auswahl der Option "PlantUML Web Server":
+- Keine lokale Java-Installation erforderlich
+- Das Diagramm wird auf dem PlantUML Web Server generiert
+- Sie können die URL in die Zwischenablage kopieren oder direkt im Browser öffnen
+- Die URL kann mit anderen geteilt werden, um das Diagramm anzuzeigen
 
 ### Interaktive Funktionen
 - Klicken Sie auf Diagrammelemente, um:
