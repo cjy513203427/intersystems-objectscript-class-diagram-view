@@ -11,6 +11,7 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 - Right-click context menu integration in both editor and explorer
 - Visualize class relationships, properties, and methods
 - Built on PlantUML for reliable diagram rendering
+- Generate diagrams using PlantUML Web Server (no Java required)
 - Interactive Class Diagram Browsing
   - Click on class names, properties, or methods to quickly jump to the corresponding code
   - SVG diagrams embedded in HTML for smooth interaction
@@ -19,13 +20,13 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 ## Requirements
 
 - Visual Studio Code 1.96.0 or higher
-- Java Runtime Environment (JRE) 8 or higher for PlantUML diagram generation
+- Java Runtime Environment (JRE) 8 or higher for local PlantUML diagram generation (optional if using PlantUML Web Server)
 - InterSystems ObjectScript files (`.cls`)
 
 ## Installation
 1. Install the extension through VS 
 ![install plugin](images/install_plugin.gif)
-2. Ensure you have Java Runtime Environment (JRE) installed on your system
+2. Ensure you have Java Runtime Environment (JRE) installed on your system (optional if using PlantUML Web Server)
 3. Restart VS Code after installation
 
 ## Usage
@@ -33,12 +34,23 @@ A Visual Studio Code extension that generates UML class diagrams for InterSystem
 ### Generating Class Diagrams
 1. Open a `.cls` file in the editor
 2. Generate a class diagram using one of these methods:
-   - Press `Ctrl+Alt+U`
+   - Press `Ctrl+Alt+U` 
    ![press shortcut](images/press_shortcut.gif)
    - Right-click the file and select "Generate Class Diagram"
    ![right click file](images/right_click_file.gif)
    - Right-click a folder containing `.cls` files and select "Generate Class Diagram"
    ![right click folder](images/right_click_folder.gif)
+3. Choose your preferred generation method:
+   - **Local Java**: Generates the diagram using local Java installation and displays it in VS Code
+   - **PlantUML Web Server**: Generates a URL that can be opened in any browser (no Java required)
+
+### Using PlantUML Web Server
+When choosing the "PlantUML Web Server" option:
+- No local Java installation is required
+- The diagram is generated on the PlantUML Web Server
+- You can copy the URL to clipboard or open it directly in your browser
+- The URL can be shared with others to view the diagram
+
 ### Interactive Features
 - Click on diagram elements to:
   - Jump to class definitions

@@ -40,7 +40,12 @@ async function hasClsFiles(dirPath: string): Promise<boolean> {
     }
 }
 
-export async function generateClassDiagram(uri: vscode.Uri) {
+/**
+ * Generates a class diagram for the given URI
+ * @param uri The URI of the file or directory to generate a diagram for
+ * @param useWebServer Whether to use the PlantUML Web Server (true) or local Java (false)
+ */
+export async function generateClassDiagram(uri: vscode.Uri, useWebServer: boolean = false) {
     if (!uri || (!uri.fsPath.endsWith('.cls') && !fs.statSync(uri.fsPath).isDirectory())) {
         vscode.window.showInformationMessage('Please select a .cls file or a directory containing .cls files');
         return;
@@ -146,10 +151,34 @@ export async function generateClassDiagram(uri: vscode.Uri) {
         await fs.promises.writeFile(umlFilePath, umlContent);
         
         vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
-        const svgFilePath = await exportDiagram(umlFilePath);
         
-        // Show the diagram in a WebView with baseDir for class lookup
-        ClassDiagramPanel.createOrShow(__dirname, svgFilePath, baseDir, outputFileName);
+        if (useWebServer) {
+            // Generate PlantUML Web Server URL
+            const plantUmlUrl = generatePlantUmlWebUrl(umlContent);
+            
+            // Show URL to user and offer to copy it
+            const copyAction = 'Copy URL';
+            const openAction = 'Open in Browser';
+            const result = await vscode.window.showInformationMessage(
+                `PlantUML diagram available at web server. You can copy the URL or open it in browser.`,
+                copyAction,
+                openAction
+            );
+            
+            if (result === copyAction) {
+                // Copy URL to clipboard
+                await vscode.env.clipboard.writeText(plantUmlUrl);
+                vscode.window.showInformationMessage('PlantUML URL copied to clipboard');
+            } else if (result === openAction) {
+                // Open URL in browser
+                vscode.env.openExternal(vscode.Uri.parse(plantUmlUrl));
+            }
+        } else {
+            // Use existing local Java method
+            const svgFilePath = await exportDiagram(umlFilePath);
+            // Show the diagram in a WebView with baseDir for class lookup
+            ClassDiagramPanel.createOrShow(__dirname, svgFilePath, baseDir, outputFileName);
+        }
     } catch (err) {
         vscode.window.showErrorMessage(`Failed to generate class diagram: ${err}`);
     }
@@ -174,4 +203,96 @@ async function exportDiagram(umlFilePath: string): Promise<string> {
             resolve(svgFilePath);
         });
     });
+}
+
+/**
+ * Generates a PlantUML Web Server URL for the given UML content
+ * @param umlContent The PlantUML content
+ * @returns The PlantUML Web Server URL
+ */
+function generatePlantUmlWebUrl(umlContent: string): string {
+    // Encode the PlantUML content for the URL
+    // We need to use the PlantUML encoding algorithm
+    const encoded = encodePlantUmlContent(umlContent);
+    return `https://www.plantuml.com/plantuml/svg/${encoded}`;
+}
+
+/**
+ * Encodes PlantUML content for use in a URL
+ * This is a simplified version of the PlantUML encoding algorithm
+ * @param content The PlantUML content to encode
+ * @returns The encoded content
+ */
+function encodePlantUmlContent(content: string): string {
+    // We need to use zlib to compress the data
+    // For PlantUML server, we need to use the deflate algorithm and then encode with a custom base64 variant
+    
+    // Import zlib for compression
+    const zlib = require('zlib');
+    
+    // Compress the content using deflate
+    const deflated = zlib.deflateRawSync(content, { level: 9 });
+    
+    // Convert to PlantUML's custom base64 variant
+    return encode64(deflated);
+}
+
+/**
+ * Encodes a buffer using PlantUML's custom base64 variant
+ * @param data The data to encode
+ * @returns The encoded string
+ */
+function encode64(data: Buffer): string {
+    let r = '';
+    // PlantUML uses a different base64 table than the standard one
+    // This is their encoding table: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_
+    const encode6bit = (b: number): string => {
+        if (b < 10) {
+            return String.fromCharCode(48 + b);
+        }
+        b -= 10;
+        if (b < 26) {
+            return String.fromCharCode(65 + b);
+        }
+        b -= 26;
+        if (b < 26) {
+            return String.fromCharCode(97 + b);
+        }
+        b -= 26;
+        if (b === 0) {
+            return '-';
+        }
+        if (b === 1) {
+            return '_';
+        }
+        return '?';
+    };
+    
+    // Process 3 bytes at a time
+    for (let i = 0; i < data.length; i += 3) {
+        // Special processing for the last few bytes
+        if (i + 2 === data.length) {
+            r += encode6bit((data[i] & 0xFC) >> 2);
+            r += encode6bit(((data[i] & 0x03) << 4) | ((data[i + 1] & 0xF0) >> 4));
+            r += encode6bit((data[i + 1] & 0x0F) << 2);
+            break;
+        }
+        if (i + 1 === data.length) {
+            r += encode6bit((data[i] & 0xFC) >> 2);
+            r += encode6bit((data[i] & 0x03) << 4);
+            break;
+        }
+        
+        // Normal case for 3 bytes
+        const b1 = data[i];
+        const b2 = data[i + 1];
+        const b3 = data[i + 2];
+        
+        r += encode6bit((b1 & 0xFC) >> 2);
+        r += encode6bit(((b1 & 0x03) << 4) | ((b2 & 0xF0) >> 4));
+        r += encode6bit(((b2 & 0x0F) << 2) | ((b3 & 0xC0) >> 6));
+        r += encode6bit(b3 & 0x3F);
+    }
+    
+    return r;
 }

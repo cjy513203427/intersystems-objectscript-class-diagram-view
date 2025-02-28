@@ -11,6 +11,7 @@
 - 在编辑器和资源管理器中集成右键上下文菜单
 - 可视化类关系、属性和方法
 - 基于 PlantUML 实现可靠的图表渲染
+- 使用 PlantUML Web 服务器生成图表（无需安装 Java）
 - 交互式类图浏览
   - 点击类名、属性或方法可快速跳转到相应的代码
   - 在 HTML 中嵌入 SVG 图表，实现流畅的交互
@@ -19,13 +20,13 @@
 ## 系统要求
 
 - Visual Studio Code 1.96.0 或更高版本
-- Java 运行时环境 (JRE) 8 或更高版本（用于 PlantUML 图表生成）
+- Java 运行时环境 (JRE) 8 或更高版本（用于本地 PlantUML 图表生成，如使用 PlantUML Web 服务器则可选）
 - InterSystems ObjectScript 文件 (`.cls`)
 
 ## 安装
 1. 通过 VS Code 安装扩展
 ![安装插件](images/install_plugin.gif)
-2. 确保系统已安装 Java 运行时环境 (JRE)
+2. 确保系统已安装 Java 运行时环境 (JRE)（如使用 PlantUML Web 服务器则可选）
 3. 安装后重启 VS Code
 
 ## 使用方法
@@ -39,6 +40,16 @@
    ![右键点击文件](images/right_click_file.gif)
    - 右键点击包含 `.cls` 文件的文件夹并选择"生成类图"
    ![右键点击文件夹](images/right_click_folder.gif)
+3. 选择您偏好的生成方式：
+   - **本地 Java**：使用本地 Java 安装生成图表并在 VS Code 中显示
+   - **PlantUML Web 服务器**：生成可在任何浏览器中打开的 URL（无需 Java）
+
+### 使用 PlantUML Web 服务器
+当选择"PlantUML Web 服务器"选项时：
+- 无需本地安装 Java
+- 图表在 PlantUML Web 服务器上生成
+- 您可以将 URL 复制到剪贴板或直接在浏览器中打开
+- 可以与他人分享 URL 以查看图表
 
 ### 交互功能
 - 点击图表元素可以：
