@@ -185,7 +185,10 @@ export async function generateClassDiagram(uri: vscode.Uri, useWebServer: boolea
 }
 
 async function exportDiagram(umlFilePath: string): Promise<string> {
-    const jarPath = path.join(__dirname, '..', 'lib', 'plantuml-mit-1.2025.0.jar');
+    // 使用绝对路径
+    const extensionPath = vscode.extensions.getExtension('JinyaoChen.intersystems-objectscript-class-diagram-view')?.extensionPath || 
+                          path.join(path.dirname(path.dirname(path.dirname(__dirname))));
+    const jarPath = path.join(extensionPath, 'lib', 'plantuml-mit-1.2025.0.jar');
     const command = `java -jar "${jarPath}" -tsvg "${umlFilePath}"`;
 
     return new Promise((resolve, reject) => {
