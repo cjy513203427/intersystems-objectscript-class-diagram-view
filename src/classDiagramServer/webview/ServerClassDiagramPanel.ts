@@ -2,16 +2,17 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ServerClassService } from '../service/serverClassService';
+import { RestClassService } from '../service/restClassService';
 
 /**
- * 服务器端类图面板，用于在WebView中显示类图
- * 支持交互功能，如缩放和点击类导航到其定义
+ * Server-side class diagram panel for displaying class diagrams in WebView
+ * Supports interactive features like zooming and clicking on classes to navigate to their definitions
  */
 export class ServerClassDiagramPanel {
     public static currentPanel: ServerClassDiagramPanel | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionPath: string;
-    private readonly _classService: ServerClassService;
+    private readonly _classService: ServerClassService | RestClassService;
     private _disposables: vscode.Disposable[] = [];
     private _viewState: { scrollX: number; scrollY: number; scale: number } = {
         scrollX: 0,
@@ -19,7 +20,7 @@ export class ServerClassDiagramPanel {
         scale: 1
     };
 
-    private constructor(panel: vscode.WebviewPanel, extensionPath: string, classService: ServerClassService) {
+    private constructor(panel: vscode.WebviewPanel, extensionPath: string, classService: ServerClassService | RestClassService) {
         this._panel = panel;
         this._extensionPath = extensionPath;
         this._classService = classService;
@@ -58,7 +59,7 @@ export class ServerClassDiagramPanel {
     /**
      * 创建或显示类图面板
      */
-    public static createOrShow(extensionPath: string, svgFilePath: string, classService: ServerClassService, title: string = 'Class Diagram'): ServerClassDiagramPanel {
+    public static createOrShow(extensionPath: string, svgFilePath: string, classService: ServerClassService | RestClassService, title: string = 'Class Diagram'): ServerClassDiagramPanel {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
             : undefined;
@@ -408,7 +409,7 @@ export class ServerClassDiagramPanel {
     private async openAttribute(className: string, propertyName: string): Promise<void> {
         try {
             // 获取ObjectScript扩展的API
-            const objectScriptExtension = vscode.extensions.getExtension('intersystems.objectscript');
+            const objectScriptExtension = vscode.extensions.getExtension('intersystems-community.vscode-objectscript');
             if (!objectScriptExtension) {
                 vscode.window.showErrorMessage('InterSystems ObjectScript extension is not installed');
                 return;
@@ -433,7 +434,7 @@ export class ServerClassDiagramPanel {
     private async openMethod(className: string, methodName: string): Promise<void> {
         try {
             // 获取ObjectScript扩展的API
-            const objectScriptExtension = vscode.extensions.getExtension('intersystems.objectscript');
+            const objectScriptExtension = vscode.extensions.getExtension('intersystems-community.vscode-objectscript');
             if (!objectScriptExtension) {
                 vscode.window.showErrorMessage('InterSystems ObjectScript extension is not installed');
                 return;

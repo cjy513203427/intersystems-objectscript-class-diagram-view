@@ -1,5 +1,5 @@
 /**
- * 定义从InterSystems服务器查询的数据结构
+ * Define query data structure for InterSystems server
  */
 export interface QueryData {
     query: string;
@@ -7,7 +7,7 @@ export interface QueryData {
 }
 
 /**
- * 定义从InterSystems服务器返回的类成员信息
+ * Define class member information returned from InterSystems server
  */
 export interface ClassMemberInfo {
     Name: string;
@@ -19,7 +19,7 @@ export interface ClassMemberInfo {
 }
 
 /**
- * 定义类信息
+ * Define class information
  */
 export interface ServerClassInfo {
     className: string;

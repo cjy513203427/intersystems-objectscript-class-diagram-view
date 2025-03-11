@@ -1,18 +1,18 @@
 import { ServerClassInfo, ClassMemberInfo } from '../service/types';
 
 /**
- * 服务器端PlantUML生成器，用于生成类图
+ * Server-side PlantUML generator for class diagrams
  */
 export class ServerPlantUmlGenerator {
     /**
-     * 检查类是否有成员
+     * Check if class has members
      */
     private static hasMembers(classInfo: ServerClassInfo): boolean {
         return classInfo.members.length > 0;
     }
 
     /**
-     * 生成类成员部分
+     * Generate class members section
      */
     private static generateMembers(classInfo: ServerClassInfo): string {
         const properties = classInfo.members
@@ -31,7 +31,7 @@ export class ServerPlantUmlGenerator {
     }
 
     /**
-     * 生成类定义
+     * Generate class definition
      */
     private static generateClassDefinition(classInfo: ServerClassInfo): string {
         const className = classInfo.className;
@@ -45,7 +45,7 @@ ${this.generateMembers(classInfo)}
     }
 
     /**
-     * 生成类之间的继承关系
+     * Generate inheritance relationships between classes
      */
     private static generateInheritanceRelations(classHierarchy: Map<string, string[]>): string {
         const relations = new Set<string>();
@@ -58,10 +58,10 @@ ${this.generateMembers(classInfo)}
     }
 
     /**
-     * 为单个类及其继承层次结构生成PlantUML图
+     * Generate PlantUML diagram for a single class and its inheritance hierarchy
      */
     public static generatePlantUml(mainClass: ServerClassInfo, relatedClasses: ServerClassInfo[], classHierarchy: Map<string, string[]>): string {
-        // 生成所有相关类的定义
+        // Generate definitions for all related classes
         const relatedClassDefinitions = relatedClasses
             .map(classInfo => this.generateClassDefinition(classInfo))
             .join('');
@@ -87,10 +87,10 @@ ${this.generateInheritanceRelations(classHierarchy)}
     }
 
     /**
-     * 为目录中的所有类生成PlantUML图
+     * Generate PlantUML diagram for all classes in a directory
      */
     public static generatePlantUmlForDirectory(allClasses: ServerClassInfo[], classHierarchy: Map<string, string[]>): string {
-        // 生成所有类的定义
+        // Generate definitions for all classes
         const classDefinitions = allClasses
             .map(classInfo => this.generateClassDefinition(classInfo))
             .join('');

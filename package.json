@@ -29,6 +29,10 @@
       {
         "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
         "title": "Generate InterSystems Class Diagram"
+      },
+      {
+        "command": "intersystems-objectscript-class-diagram-view.generateDatabaseQueryClassDiagram",
+        "title": "Generate InterSystems Class Diagram (Database Query)"
       }
     ],
     "keybindings": [
@@ -47,6 +51,11 @@
         },
         {
           "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
+          "when": "editorLangId == objectscript",
+          "group": "z_commands"
+        },
+        {
+          "command": "intersystems-objectscript-class-diagram-view.generateDatabaseQueryClassDiagram",
           "when": "editorLangId == objectscript",
           "group": "z_commands"
         }
@@ -91,6 +100,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "axios": "^1.8.1"
+    "@types/axios": "^0.14.4",
+    "axios": "^1.8.2"
   }
 }

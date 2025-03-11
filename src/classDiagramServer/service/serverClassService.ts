@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { QueryData, ClassMemberInfo, ServerClassInfo } from './types';
 
 /**
- * 服务器端类服务，用于从InterSystems服务器获取类信息
+ * Server-side class service for retrieving class information from InterSystems server
  */
 export class ServerClassService {
     private classInfoMap: Map<string, ServerClassInfo> = new Map();
@@ -10,36 +10,85 @@ export class ServerClassService {
     private processedClasses: Set<string> = new Set();
 
     /**
-     * 从InterSystems服务器获取类信息
-     * @param className 类名
+     * Execute SQL query using ObjectScript API
+     * @param api ObjectScript API instance
+     * @param sql SQL query to execute
+     * @param outputChannel Optional output channel for logging
      */
-    public async getClassInfoFromServer(className: string): Promise<ServerClassInfo | undefined> {
-        // 检查是否已处理过该类
+    private async executeQuery(api: any, sql: string, outputChannel?: vscode.OutputChannel): Promise<any[]> {
+        try {
+            let result: any;
+            
+            // Attempt to use different API methods
+            if (api.serverExecuteQuery && typeof api.serverExecuteQuery === 'function') {
+                // Use serverExecuteQuery method
+                const query: QueryData = {
+                    query: sql,
+                    parameters: []
+                };
+                
+                this.log('Using serverExecuteQuery method', outputChannel);
+                result = await api.serverExecuteQuery(query);
+                this.log(`Query result: ${JSON.stringify(result)}`, outputChannel);
+                result = result?.result?.content || result;
+            } else if (api.atelier && typeof api.atelier.query === 'function') {
+                // Use atelier.query method
+                this.log('Using atelier.query method', outputChannel);
+                result = await api.atelier.query(sql, []);
+                this.log(`Query result: ${JSON.stringify(result)}`, outputChannel);
+                result = result?.result?.content;
+            } else if (api.serverActions && typeof api.serverActions.runQuery === 'function') {
+                // Use serverActions.runQuery method
+                this.log('Using serverActions.runQuery method', outputChannel);
+                result = await api.serverActions.runQuery(sql, []);
+                this.log(`Query result: ${JSON.stringify(result)}`, outputChannel);
+            }
+            
+            return result || [];
+        } catch (error) {
+            this.log(`Error executing query: ${error}`, outputChannel);
+            return [];
+        }
+    }
+
+    /**
+     * Get class information from InterSystems server
+     * @param className Class name
+     * @param outputChannel Optional output channel for logging
+     */
+    public async getClassInfoFromServer(className: string, outputChannel?: vscode.OutputChannel): Promise<ServerClassInfo | undefined> {
+        // Check if the class has already been processed
         if (this.processedClasses.has(className)) {
+            this.log(`Class ${className} already processed, returning from cache`, outputChannel);
             return this.classInfoMap.get(className);
         }
 
         try {
-            // 获取ObjectScript扩展的API
+            // Get ObjectScript extension API
             const objectScriptApi = await this.getObjectScriptApi();
             if (!objectScriptApi) {
+                this.log('InterSystems ObjectScript extension API not available', outputChannel);
                 vscode.window.showErrorMessage('InterSystems ObjectScript extension API not available');
                 return undefined;
             }
 
-            // 查询类成员信息
-            const members = await this.queryClassMembers(objectScriptApi, className);
+            // Query class members
+            this.log(`Starting to query class members: ${className}`, outputChannel);
+            const members = await this.queryClassMembers(objectScriptApi, className, outputChannel);
             if (!members) {
+                this.log(`Unable to get members for class ${className}`, outputChannel);
                 return undefined;
             }
 
-            // 查询类的超类
-            const superClasses = await this.queryClassSuperClasses(objectScriptApi, className);
+            // Query class superclasses
+            this.log(`Starting to query superclasses: ${className}`, outputChannel);
+            const superClasses = await this.queryClassSuperClasses(objectScriptApi, className, outputChannel);
             
-            // 查询类是否为抽象类
-            const isAbstract = await this.queryClassIsAbstract(objectScriptApi, className);
+            // Query if class is abstract
+            this.log(`Starting to query if class is abstract: ${className}`, outputChannel);
+            const isAbstract = await this.queryClassIsAbstract(objectScriptApi, className, outputChannel);
 
-            // 创建类信息
+            // Create class info
             const classInfo: ServerClassInfo = {
                 className,
                 superClasses,
@@ -47,305 +96,218 @@ export class ServerClassService {
                 isAbstract
             };
 
-            // 存储类信息
-            this.processedClasses.add(className);
+            // Store class information
             this.classInfoMap.set(className, classInfo);
+            this.processedClasses.add(className);
+            
+            // Store class hierarchy
             this.classHierarchy.set(className, superClasses);
-
-            // 递归处理超类
+            
+            // Recursively process superclasses
             for (const superClass of superClasses) {
                 if (!this.processedClasses.has(superClass)) {
-                    await this.getClassInfoFromServer(superClass);
+                    this.log(`Processing superclass recursively: ${superClass}`, outputChannel);
+                    await this.getClassInfoFromServer(superClass, outputChannel);
                 }
             }
-
+            
+            this.log(`Class ${className} processing completed`, outputChannel);
             return classInfo;
         } catch (error) {
-            console.error(`Error getting class info for ${className}:`, error);
-            vscode.window.showErrorMessage(`Failed to get class info for ${className}: ${error}`);
+            this.log(`Error processing class ${className}: ${error}`, outputChannel);
             return undefined;
         }
     }
 
     /**
-     * 获取ObjectScript扩展的API
+     * Log message to output channel
+     */
+    private log(message: string, outputChannel?: vscode.OutputChannel): void {
+        console.log(message);
+        if (outputChannel) {
+            outputChannel.appendLine(message);
+        }
+    }
+
+    /**
+     * Get ObjectScript extension API
      */
     private async getObjectScriptApi(): Promise<any> {
-        const objectScriptExtension = vscode.extensions.getExtension('intersystems-community.vscode-objectscript');
-        if (!objectScriptExtension) {
-            vscode.window.showErrorMessage('InterSystems ObjectScript extension is not installed');
+        try {
+            const extension = vscode.extensions.getExtension('intersystems-community.vscode-objectscript');
+            if (!extension) {
+                vscode.window.showErrorMessage('InterSystems ObjectScript extension not found');
+                return undefined;
+            }
+
+            if (!extension.isActive) {
+                await extension.activate();
+            }
+
+            return extension.exports;
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error getting ObjectScript API: ${error}`);
             return undefined;
         }
-
-        if (!objectScriptExtension.isActive) {
-            await objectScriptExtension.activate();
-        }
-
-        const api = objectScriptExtension.exports;
-        
-        // 获取当前命名空间
-        try {
-            let namespace = '';
-            if (api.serverInfo && typeof api.serverInfo.namespace === 'string') {
-                namespace = api.serverInfo.namespace;
-            } else if (api.conn && api.conn.namespace) {
-                namespace = api.conn.namespace;
-            } else if (api.connection && api.connection.namespace) {
-                namespace = api.connection.namespace;
-            }
-            console.log(`ServerClassService - 当前命名空间: ${namespace || '未知'}`);
-        } catch (error) {
-            console.error('获取命名空间失败:', error);
-        }
-        
-        return api;
     }
 
     /**
-     * 查询类成员信息
-     * @param api ObjectScript扩展的API
-     * @param className 类名
+     * Query class members
      */
-    private async queryClassMembers(api: any, className: string): Promise<ClassMemberInfo[]> {
-        console.log(`尝试查询类成员: ${className}`);
+    private async queryClassMembers(api: any, className: string, outputChannel?: vscode.OutputChannel): Promise<ClassMemberInfo[]> {
+        this.log(`Attempting to query class members: ${className}`, outputChannel);
         
         try {
-            // 尝试使用不同的API方法
-            if (api.serverExecuteQuery && typeof api.serverExecuteQuery === 'function') {
-                // 使用serverExecuteQuery方法
-                const query: QueryData = {
-                    query: "SELECT Name, Description, Origin, FormalSpec, ReturnType AS Type, 'method' AS MemberType " +
-                        "FROM %Dictionary.CompiledMethod WHERE parent->ID = ? AND Abstract = 0 AND Internal = 0 AND Stub IS NULL AND ((Origin = parent->ID) OR (Origin != parent->ID AND NotInheritable = 0)) UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, FormalSpec, Type, 'query' AS MemberType " +
-                        "FROM %Dictionary.CompiledQuery WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'projection' AS MemberType " +
-                        "FROM %Dictionary.CompiledProjection WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'index' AS MemberType " +
-                        "FROM %Dictionary.CompiledIndex WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'foreignkey' AS MemberType " +
-                        "FROM %Dictionary.CompiledForeignKey WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'trigger' AS MemberType " +
-                        "FROM %Dictionary.CompiledTrigger WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'xdata' AS MemberType " +
-                        "FROM %Dictionary.CompiledXData WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, RuntimeType AS Type, 'property' AS MemberType " +
-                        "FROM %Dictionary.CompiledProperty WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                        "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'parameter' AS MemberType " +
-                        "FROM %Dictionary.CompiledParameter WHERE parent->ID = ? AND Internal = 0",
-                    parameters: new Array(9).fill(className)
-                };
-                
-                console.log('使用 serverExecuteQuery 方法查询');
-                const result = await api.serverExecuteQuery(query);
-                console.log(`查询结果: ${JSON.stringify(result)}`);
-                return result || [];
-            } else if (api.atelier && typeof api.atelier.query === 'function') {
-                // 使用atelier.query方法
-                const query = "SELECT Name, Description, Origin, FormalSpec, ReturnType AS Type, 'method' AS MemberType " +
-                    "FROM %Dictionary.CompiledMethod WHERE parent->ID = ? AND Abstract = 0 AND Internal = 0 AND Stub IS NULL AND ((Origin = parent->ID) OR (Origin != parent->ID AND NotInheritable = 0)) UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, FormalSpec, Type, 'query' AS MemberType " +
-                    "FROM %Dictionary.CompiledQuery WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'projection' AS MemberType " +
-                    "FROM %Dictionary.CompiledProjection WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'index' AS MemberType " +
-                    "FROM %Dictionary.CompiledIndex WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'foreignkey' AS MemberType " +
-                    "FROM %Dictionary.CompiledForeignKey WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'trigger' AS MemberType " +
-                    "FROM %Dictionary.CompiledTrigger WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'xdata' AS MemberType " +
-                    "FROM %Dictionary.CompiledXData WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, RuntimeType AS Type, 'property' AS MemberType " +
-                    "FROM %Dictionary.CompiledProperty WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'parameter' AS MemberType " +
-                    "FROM %Dictionary.CompiledParameter WHERE parent->ID = ? AND Internal = 0";
-                
-                const parameters = new Array(9).fill(className);
-                
-                console.log('使用 atelier.query 方法查询');
-                const result = await api.atelier.query(query, parameters, 'IRISAPP');
-                console.log(`查询结果: ${JSON.stringify(result)}`);
-                return result?.result?.content || [];
-            } else if (api.serverActions && typeof api.serverActions.runQuery === 'function') {
-                // 使用serverActions.runQuery方法
-                const query = "SELECT Name, Description, Origin, FormalSpec, ReturnType AS Type, 'method' AS MemberType " +
-                    "FROM %Dictionary.CompiledMethod WHERE parent->ID = ? AND Abstract = 0 AND Internal = 0 AND Stub IS NULL AND ((Origin = parent->ID) OR (Origin != parent->ID AND NotInheritable = 0)) UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, FormalSpec, Type, 'query' AS MemberType " +
-                    "FROM %Dictionary.CompiledQuery WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'projection' AS MemberType " +
-                    "FROM %Dictionary.CompiledProjection WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'index' AS MemberType " +
-                    "FROM %Dictionary.CompiledIndex WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'foreignkey' AS MemberType " +
-                    "FROM %Dictionary.CompiledForeignKey WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'trigger' AS MemberType " +
-                    "FROM %Dictionary.CompiledTrigger WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, NULL AS Type, 'xdata' AS MemberType " +
-                    "FROM %Dictionary.CompiledXData WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, RuntimeType AS Type, 'property' AS MemberType " +
-                    "FROM %Dictionary.CompiledProperty WHERE parent->ID = ? AND Internal = 0 UNION ALL %PARALLEL " +
-                    "SELECT Name, Description, Origin, NULL AS FormalSpec, Type, 'parameter' AS MemberType " +
-                    "FROM %Dictionary.CompiledParameter WHERE parent->ID = ? AND Internal = 0";
-                
-                const parameters = new Array(9).fill(className);
-                
-                console.log('使用 serverActions.runQuery 方法查询');
-                const result = await api.serverActions.runQuery(query, parameters, 'IRISAPP');
-                console.log(`查询结果: ${JSON.stringify(result)}`);
-                return result || [];
-            }
+            // Query for properties
+            const propertySql = `SELECT Name, Parameters FROM %Dictionary.PropertyDefinition WHERE Parent = '${className}'`;
+            this.log(`Property query SQL: ${propertySql}`, outputChannel);
             
-            // 如果没有可用的查询方法，返回空数组
-            console.error('没有可用的查询方法');
-            return [];
+            // Execute property query
+            const properties = await this.executeQuery(api, propertySql, outputChannel);
+            this.log(`Found ${properties.length} properties`, outputChannel);
+            
+            // Query for methods
+            const methodSql = `SELECT Name, ReturnType, FormalSpec FROM %Dictionary.MethodDefinition WHERE Parent = '${className}'`;
+            this.log(`Method query SQL: ${methodSql}`, outputChannel);
+            
+            // Execute method query
+            const methods = await this.executeQuery(api, methodSql, outputChannel);
+            this.log(`Found ${methods.length} methods`, outputChannel);
+            
+            // Format properties to ClassMemberInfo
+            const formattedProperties: ClassMemberInfo[] = properties.map((prop: any) => {
+                this.log(`Processing property: ${JSON.stringify(prop, null, 2)}`, outputChannel);
+                return {
+                    Name: prop.Name,
+                    Description: '',
+                    Origin: className,
+                    FormalSpec: null,
+                    Type: prop.Parameters || null,
+                    MemberType: 'property'
+                };
+            });
+            
+            // Format methods to ClassMemberInfo
+            const formattedMethods: ClassMemberInfo[] = methods.map((method: any) => {
+                this.log(`Processing method: ${JSON.stringify(method, null, 2)}`, outputChannel);
+                return {
+                    Name: method.Name,
+                    Description: '',
+                    Origin: className,
+                    FormalSpec: method.FormalSpec || null,
+                    Type: method.ReturnType || null,
+                    MemberType: 'method'
+                };
+            });
+            
+            // Combine properties and methods
+            const result = [...formattedProperties, ...formattedMethods];
+            this.log(`Total members for class ${className}: ${result.length}`, outputChannel);
+            this.log(`Complete member list: ${JSON.stringify(result, null, 2)}`, outputChannel);
+            return result;
         } catch (error) {
-            console.error(`Error querying class members for ${className}:`, error);
+            this.log(`Error querying class members: ${error}`, outputChannel);
             return [];
         }
     }
 
     /**
-     * 查询类的超类
-     * @param api ObjectScript扩展的API
-     * @param className 类名
+     * Query class superclasses
      */
-    private async queryClassSuperClasses(api: any, className: string): Promise<string[]> {
-        console.log(`尝试查询超类: ${className}`);
+    private async queryClassSuperClasses(api: any, className: string, outputChannel?: vscode.OutputChannel): Promise<string[]> {
+        this.log(`Attempting to query superclasses: ${className}`, outputChannel);
         
         try {
-            // 尝试使用不同的API方法
-            if (api.serverExecuteQuery && typeof api.serverExecuteQuery === 'function') {
-                // 使用serverExecuteQuery方法
-                const query: QueryData = {
-                    query: "SELECT Super FROM %Dictionary.CompiledClass WHERE ID = ?",
-                    parameters: [className]
-                };
-                
-                console.log('使用 serverExecuteQuery 方法查询超类');
-                const result = await api.serverExecuteQuery(query);
-                console.log(`超类查询结果: ${JSON.stringify(result)}`);
-                if (result && result.length > 0 && result[0].Super) {
-                    return result[0].Super.split(',').map((s: string) => s.trim());
-                }
-            } else if (api.atelier && typeof api.atelier.query === 'function') {
-                // 使用atelier.query方法
-                const query = "SELECT Super FROM %Dictionary.CompiledClass WHERE ID = ?";
-                const parameters = [className];
-                
-                console.log('使用 atelier.query 方法查询超类');
-                const result = await api.atelier.query(query, parameters, 'IRISAPP');
-                console.log(`超类查询结果: ${JSON.stringify(result)}`);
-                if (result?.result?.content && result.result.content.length > 0 && result.result.content[0].Super) {
-                    return result.result.content[0].Super.split(',').map((s: string) => s.trim());
-                }
-            } else if (api.serverActions && typeof api.serverActions.runQuery === 'function') {
-                // 使用serverActions.runQuery方法
-                const query = "SELECT Super FROM %Dictionary.CompiledClass WHERE ID = ?";
-                const parameters = [className];
-                
-                console.log('使用 serverActions.runQuery 方法查询超类');
-                const result = await api.serverActions.runQuery(query, parameters, 'IRISAPP');
-                console.log(`超类查询结果: ${JSON.stringify(result)}`);
-                if (result && result.length > 0 && result[0].Super) {
-                    return result[0].Super.split(',').map((s: string) => s.trim());
-                }
+            // Query for superclasses
+            const superClassSql = `SELECT Super FROM %Dictionary.ClassDefinition WHERE Name = '${className}'`;
+            this.log(`Superclass query SQL: ${superClassSql}`, outputChannel);
+            
+            // Execute query
+            const result = await this.executeQuery(api, superClassSql, outputChannel);
+            this.log(`Superclass query result: ${JSON.stringify(result, null, 2)}`, outputChannel);
+            
+            if (result && result.length > 0 && result[0].Super) {
+                const superClasses = result[0].Super.split(',').map((s: string) => s.trim());
+                this.log(`Found superclasses: ${JSON.stringify(superClasses)}`, outputChannel);
+                return superClasses;
             }
             
-            // 如果没有可用的查询方法或查询结果为空，返回空数组
+            this.log(`Class ${className} has no superclasses`, outputChannel);
             return [];
         } catch (error) {
-            console.error(`Error querying superclasses for ${className}:`, error);
+            this.log(`Error querying superclasses: ${error}`, outputChannel);
             return [];
         }
     }
 
     /**
-     * 查询类是否为抽象类
-     * @param api ObjectScript扩展的API
-     * @param className 类名
+     * Query if class is abstract
      */
-    private async queryClassIsAbstract(api: any, className: string): Promise<boolean> {
-        console.log(`尝试查询类是否为抽象类: ${className}`);
+    private async queryClassIsAbstract(api: any, className: string, outputChannel?: vscode.OutputChannel): Promise<boolean> {
+        this.log(`Attempting to query if class is abstract: ${className}`, outputChannel);
         
         try {
-            // 尝试使用不同的API方法
-            if (api.serverExecuteQuery && typeof api.serverExecuteQuery === 'function') {
-                // 使用serverExecuteQuery方法
-                const query: QueryData = {
-                    query: "SELECT Abstract FROM %Dictionary.CompiledClass WHERE ID = ?",
-                    parameters: [className]
-                };
-                
-                console.log('使用 serverExecuteQuery 方法查询抽象类');
-                const result = await api.serverExecuteQuery(query);
-                console.log(`抽象类查询结果: ${JSON.stringify(result)}`);
-                return result && result.length > 0 && result[0].Abstract === 1;
-            } else if (api.atelier && typeof api.atelier.query === 'function') {
-                // 使用atelier.query方法
-                const query = "SELECT Abstract FROM %Dictionary.CompiledClass WHERE ID = ?";
-                const parameters = [className];
-                
-                console.log('使用 atelier.query 方法查询抽象类');
-                const result = await api.atelier.query(query, parameters, 'IRISAPP');
-                console.log(`抽象类查询结果: ${JSON.stringify(result)}`);
-                return result?.result?.content && result.result.content.length > 0 && result.result.content[0].Abstract === 1;
-            } else if (api.serverActions && typeof api.serverActions.runQuery === 'function') {
-                // 使用serverActions.runQuery方法
-                const query = "SELECT Abstract FROM %Dictionary.CompiledClass WHERE ID = ?";
-                const parameters = [className];
-                
-                console.log('使用 serverActions.runQuery 方法查询抽象类');
-                const result = await api.serverActions.runQuery(query, parameters, 'IRISAPP');
-                console.log(`抽象类查询结果: ${JSON.stringify(result)}`);
-                return result && result.length > 0 && result[0].Abstract === 1;
+            // Query if class is abstract
+            const abstractSql = `SELECT Abstract FROM %Dictionary.ClassDefinition WHERE Name = '${className}'`;
+            this.log(`Abstract class query SQL: ${abstractSql}`, outputChannel);
+            
+            // Execute query
+            const result = await this.executeQuery(api, abstractSql, outputChannel);
+            
+            if (result && result.length > 0) {
+                const isAbstract = result[0].Abstract === 1 || result[0].Abstract === '1' || result[0].Abstract === true;
+                this.log(`Class ${className} is${isAbstract ? '' : ' not'} abstract`, outputChannel);
+                return isAbstract;
             }
             
-            // 如果没有可用的查询方法或查询结果为空，默认返回false
+            this.log(`Class ${className} is not abstract (default)`, outputChannel);
             return false;
         } catch (error) {
-            console.error(`Error querying abstract status for ${className}:`, error);
+            this.log(`Error querying abstract status: ${error}`, outputChannel);
             return false;
         }
     }
 
     /**
-     * 获取类信息
-     * @param className 类名
+     * Get class information
      */
     public getClassInfo(className: string): ServerClassInfo | undefined {
         return this.classInfoMap.get(className);
     }
 
     /**
-     * 获取所有类信息
+     * Get all class information
      */
     public getAllClassInfos(): Map<string, ServerClassInfo> {
         return this.classInfoMap;
     }
 
     /**
-     * 获取所有超类
-     * @param className 类名
+     * Get all superclasses for a given class
      */
     public getAllSuperClasses(className: string): string[] {
-        const allSuperClasses = new Set<string>();
-
+        const result: string[] = [];
+        const visited = new Set<string>();
+        
         const addSuperClasses = (cls: string) => {
+            if (visited.has(cls)) return;
+            visited.add(cls);
+            
             const superClasses = this.classHierarchy.get(cls) || [];
-            superClasses.forEach(superClass => {
-                if (!allSuperClasses.has(superClass)) {
-                    allSuperClasses.add(superClass);
-                    addSuperClasses(superClass);
+            for (const superClass of superClasses) {
+                if (!result.includes(superClass)) {
+                    result.push(superClass);
                 }
-            });
+                addSuperClasses(superClass);
+            }
         };
-
+        
         addSuperClasses(className);
-        return Array.from(allSuperClasses);
+        return result;
     }
 
     /**
-     * 获取类层次结构
+     * Get class hierarchy
      */
     public getClassHierarchy(): Map<string, string[]> {
         return this.classHierarchy;
