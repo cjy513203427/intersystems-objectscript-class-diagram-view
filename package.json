@@ -29,6 +29,10 @@
       {
         "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
         "title": "Generate InterSystems Class Diagram"
+      },
+      {
+        "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
+        "title": "Test IRIS REST Connection"
       }
     ],
     "keybindings": [
@@ -47,7 +51,12 @@
         },
         {
           "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
-          "when": "editorLangId == objectscript",
+          "when": "resourceExtname == .cls",
+          "group": "z_commands"
+        },
+        {
+          "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
+          "when": "resourceExtname == .cls",
           "group": "z_commands"
         }
       ],
@@ -59,14 +68,13 @@
         },
         {
           "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
-          "when": "workbenchState != empty",
+          "when": "resourceExtname == .cls",
           "group": "z_commands"
-        }
-      ],
-      "commandPalette": [
+        },
         {
-          "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
-          "when": "editorLangId == objectscript || workbenchState != empty"
+          "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
+          "when": "resourceExtname == .cls",
+          "group": "z_commands"
         }
       ]
     }
