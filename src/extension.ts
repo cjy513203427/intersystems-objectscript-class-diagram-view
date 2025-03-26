@@ -149,7 +149,7 @@ export function deactivate() {}
 async function generateServerClassDiagram(className: string, useWebServer: boolean): Promise<void> {
   try {
     const classDiagramServer = new ClassDiagramServer();
-    await classDiagramServer.generateClassDiagram(className);
+    await classDiagramServer.generateClassDiagram(className, useWebServer);
   } catch (error) {
     vscode.window.showErrorMessage(`Error generating server class diagram: ${error instanceof Error ? error.message : String(error)}`);
   }
