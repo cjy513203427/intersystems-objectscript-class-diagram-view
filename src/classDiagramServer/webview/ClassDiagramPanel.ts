@@ -16,6 +16,12 @@ export class ClassDiagramPanel {
         scrollY: 0,
         scale: 1
     };
+    // IRIS server configuration
+    private readonly _irisServer = {
+        host: 'localhost',
+        port: '51536',
+        namespace: 'KELVIN'
+    };
 
     /**
      * Private constructor, use createOrShow to create instances
@@ -35,6 +41,14 @@ export class ClassDiagramPanel {
                         console.log('Opening class:', message.className);
                         await this.openClassInIRIS(message.className);
                         break;
+                    case 'openMethod':
+                        console.log('Opening method:', message.methodName, 'in class:', message.className);
+                        await this.openMethodInIRIS(message.className, message.methodName);
+                        break;
+                    case 'openProperty':
+                        console.log('Opening property:', message.propertyName, 'in class:', message.className);
+                        await this.openPropertyInIRIS(message.className, message.propertyName);
+                        break;
                     case 'saveViewState':
                         this._viewState = {
                             scrollX: message.scrollX,
@@ -50,17 +64,75 @@ export class ClassDiagramPanel {
     }
 
     /**
-     * Opens a class in the InterSystems IRIS Management Portal or other appropriate view
-     * Since these are server-side classes, we handle differently than local files
+     * Opens a class in the InterSystems IRIS Documatic page
      */
     private async openClassInIRIS(className: string) {
+        // Clean up class name (remove quotes if present)
+        className = className.replace(/^"/, '').replace(/"$/, '');
+        
         // Show a message with class name
         vscode.window.showInformationMessage(`Opening class in IRIS: ${className}`);
         
-        // In the future, this could be enhanced to:
-        // 1. Open the class in Management Portal using browser
-        // 2. Open the class using a custom viewer within VS Code
-        // 3. Fetch class source via REST API and show in editor
+        try {
+            // Use the Documatic URL which is more reliable for browsing class definitions
+            const irisUrl = `http://${this._irisServer.host}:${this._irisServer.port}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${this._irisServer.namespace}&CLASSNAME=${encodeURIComponent(className)}`;
+            
+            console.log('Opening URL:', irisUrl);
+            vscode.env.openExternal(vscode.Uri.parse(irisUrl));
+        } catch (error) {
+            console.error('Error opening class in browser:', error);
+            vscode.window.showErrorMessage(`Error opening class ${className} in browser: ${error}`);
+        }
+    }
+
+    /**
+     * Opens a method in InterSystems IRIS Documatic
+     * @param className Class containing the method
+     * @param methodName Method to open
+     */
+    private async openMethodInIRIS(className: string, methodName: string) {
+        // Clean up class name and method name
+        className = className.replace(/^"/, '').replace(/"$/, '');
+        
+        // Show message
+        vscode.window.showInformationMessage(`Opening method ${methodName} in class ${className}`);
+        
+        try {
+            // For methods, we can link directly to the class and let the user find the method
+            // Most Documatic implementations don't support direct method linking
+            const irisUrl = `http://${this._irisServer.host}:${this._irisServer.port}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${this._irisServer.namespace}&CLASSNAME=${encodeURIComponent(className)}`;
+            
+            console.log('Opening URL for method:', irisUrl);
+            vscode.env.openExternal(vscode.Uri.parse(irisUrl));
+        } catch (error) {
+            console.error('Error opening method in browser:', error);
+            vscode.window.showErrorMessage(`Error opening method ${methodName} in class ${className}: ${error}`);
+        }
+    }
+
+    /**
+     * Opens a property in InterSystems IRIS Documatic
+     * @param className Class containing the property
+     * @param propertyName Property to open
+     */
+    private async openPropertyInIRIS(className: string, propertyName: string) {
+        // Clean up class name and property name
+        className = className.replace(/^"/, '').replace(/"$/, '');
+        
+        // Show message
+        vscode.window.showInformationMessage(`Opening property ${propertyName} in class ${className}`);
+        
+        try {
+            // For properties, we can link directly to the class and let the user find the property
+            // Most Documatic implementations don't support direct property linking
+            const irisUrl = `http://${this._irisServer.host}:${this._irisServer.port}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${this._irisServer.namespace}&CLASSNAME=${encodeURIComponent(className)}`;
+            
+            console.log('Opening URL for property:', irisUrl);
+            vscode.env.openExternal(vscode.Uri.parse(irisUrl));
+        } catch (error) {
+            console.error('Error opening property in browser:', error);
+            vscode.window.showErrorMessage(`Error opening property ${propertyName} in class ${className}: ${error}`);
+        }
     }
 
     /**
@@ -123,6 +195,7 @@ export class ClassDiagramPanel {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
             <title>Class Diagram</title>
             <style>
                 body {
@@ -238,12 +311,125 @@ export class ClassDiagramPanel {
                         saveViewState();
                     });
 
-                    // Initialize class interaction
-                    initializeClassInteraction();
-                    
-                    // Apply initial zoom level
-                    applyZoom();
+                    // Initialize SVG interaction
+                    function initializeSvgInteraction() {
+                        const svg = container.querySelector('svg');
+                        if (!svg) {
+                            console.error('SVG not found in container');
+                            return;
+                        }
 
+                        // Helper function to find the parent class name of a property/method
+                        function findParentClassName(element) {
+                            let current = element.closest('g');
+                            while (current && !current.matches('svg')) {
+                                const texts = Array.from(current.querySelectorAll('text'));
+                                // Find the first text that looks like a class name
+                                const classText = texts.find(t => {
+                                    const content = t.textContent?.trim();
+                                    return content && !content.includes(':') && !content.includes('(') && !content.startsWith('+');
+                                });
+                                
+                                if (classText) {
+                                    const className = classText.textContent.trim();
+                                    console.log('Found parent class:', className);
+                                    return className;
+                                }
+                                current = current.parentElement;
+                            }
+                            console.log('No parent class found');
+                            return null;
+                        }
+
+                        // Handle text elements (class names, properties, methods)
+                        svg.querySelectorAll('text').forEach(text => {
+                            const content = text.textContent?.trim();
+                            if (!content) return;
+
+                            console.log('Processing text element:', content);
+                            
+                            // Fix method detection
+                            const isMethod = content.includes('(') && content.includes(')');
+                            
+                            // Fix property detection
+                            const isProperty = content.includes(':') && !isMethod;
+
+                            console.log('Is property?', isProperty);
+                            console.log('Is method?', isMethod);
+
+                            if (!isProperty && !isMethod) {
+                                // 这是一个类名 - 处理带引号和不带引号的情况
+                                let className = content;
+                                
+                                // 如果有引号，去掉引号
+                                if (content.startsWith('"') && content.endsWith('"')) {
+                                    className = content.substring(1, content.length - 1);
+                                }
+                                
+                                console.log('Setting up click handler for class:', className);
+                                text.style.cursor = 'pointer';
+                                text.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    console.log('Class clicked:', className);
+                                    vscode.postMessage({
+                                        command: 'openClass',
+                                        className: className
+                                    });
+                                });
+                            } else if (isMethod) {
+                                // This is a method
+                                console.log('Processing method:', content);
+                                const parentClass = findParentClassName(text);
+                                if (parentClass) {
+                                    // Simple extraction - get everything before the opening parenthesis
+                                    const methodName = content.split('(')[0].trim();
+                                    console.log('Setting up click handler for method:', methodName);
+                                    text.style.cursor = 'pointer';
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        console.log('Method clicked:', methodName, 'in class:', parentClass);
+                                        vscode.postMessage({
+                                            command: 'openMethod',
+                                            className: parentClass,
+                                            methodName: methodName
+                                        });
+                                    });
+                                }
+                            } else if (isProperty) {
+                                // This is a property
+                                console.log('Processing property:', content);
+                                const parentClass = findParentClassName(text);
+                                if (parentClass) {
+                                    // Simple extraction - get everything before the colon
+                                    const propertyName = content.split(':')[0].trim();
+                                    console.log('Setting up click handler for property:', propertyName);
+                                    text.style.cursor = 'pointer';
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        console.log('Property clicked:', propertyName, 'in class:', parentClass);
+                                        vscode.postMessage({
+                                            command: 'openProperty',
+                                            className: parentClass,
+                                            propertyName: propertyName
+                                        });
+                                    });
+                                }
+                            }
+                        });
+
+                        // Disable pointer events on rectangles to make text clicking easier
+                        svg.querySelectorAll('rect').forEach(rect => {
+                            rect.style.pointerEvents = 'none';
+                        });
+                    }
+
+                    // Initialize interaction
+                    console.log('Initializing SVG interaction');
+                    initializeSvgInteraction();
+                    
+                    // Apply initial zoom
+                    applyZoom();
+                    
                     // Setup global zoom functions
                     window.zoomIn = function() {
                         if (currentScale < MAX_SCALE) {
@@ -277,34 +463,18 @@ export class ClassDiagramPanel {
                     function updateZoom() {
                         zoomLevelDisplay.textContent = Math.round(currentScale * 100) + '%';
                     }
-
-                    function initializeClassInteraction() {
-                        // Add click handlers for class elements
-                        const svg = container.querySelector('svg');
-                        if (!svg) {
-                            console.error('SVG not found in container');
-                            return;
-                        }
-
-                        // Process all text elements that contain class names
-                        const classTexts = Array.from(svg.querySelectorAll('text'));
-                        
-                        classTexts.forEach(text => {
-                            if (text.textContent && !text.textContent.includes(':') && !text.textContent.includes('(')) {
-                                // This might be a class name
-                                text.addEventListener('click', function(e) {
-                                    const className = text.textContent.trim().replace(/^"/, '').replace(/"$/, '');
-                                    console.log('Class clicked:', className);
-                                    
-                                    // Send message to extension
-                                    vscode.postMessage({
-                                        command: 'openClass',
-                                        className: className
-                                    });
-                                });
+                    
+                    // Mouse wheel zoom with Ctrl key
+                    diagram.addEventListener('wheel', (e) => {
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            if (e.deltaY < 0) {
+                                zoomIn();
+                            } else {
+                                zoomOut();
                             }
-                        });
-                    }
+                        }
+                    });
                 })();
             </script>
         </body>
