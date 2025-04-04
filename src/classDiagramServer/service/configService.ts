@@ -9,13 +9,24 @@ export class ConfigService {
      * @returns Connection configuration object
      */
     public getIrisConnection(): { url: string, username: string, password: string, namespace: string } {
-        // In a real implementation, these values would be retrieved from VS Code settings
-        // For now, we're using hardcoded values for testing as per requirements
+        // Get settings from VSCode configuration
+        const config = vscode.workspace.getConfiguration('intersystems-objectscript-class-diagram-view.server');
+        
+        // Get values from configuration or use defaults
+        const host = config.get<string>('host') || 'localhost';
+        const port = config.get<string>('port') || '52773';
+        const namespace = config.get<string>('namespace') || 'USER';
+        const username = config.get<string>('username') || '_SYSTEM';
+        const password = config.get<string>('password') || 'SYS';
+        
+        // Construct the URL
+        const url = `http://${host}:${port}/api/atelier/v1`;
+        
         return {
-            url: 'http://localhost:51536/api/atelier/v1',
-            username: '_SYSTEM',
-            password: 'SYS',
-            namespace: 'KELVIN'
+            url,
+            username,
+            password,
+            namespace
         };
     }
 
@@ -23,8 +34,8 @@ export class ConfigService {
      * Initialize configuration with default values if not set
      */
     public initializeConfig(): void {
-        // This would initialize the extension's configuration
-        // Currently just using hardcoded values
-        console.log('Configuration initialized with default test values');
+        // Simply log configuration values for debugging
+        const connection = this.getIrisConnection();
+        console.log('IRIS Connection Configuration:', connection);
     }
 } 

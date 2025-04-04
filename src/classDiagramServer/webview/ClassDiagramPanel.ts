@@ -17,10 +17,10 @@ export class ClassDiagramPanel {
         scale: 1
     };
     // IRIS server configuration
-    private readonly _irisServer = {
-        host: 'localhost',
-        port: '51536',
-        namespace: 'KELVIN'
+    private readonly _irisServer: {
+        host: string;
+        port: string;
+        namespace: string;
     };
 
     /**
@@ -31,6 +31,16 @@ export class ClassDiagramPanel {
     private constructor(panel: vscode.WebviewPanel, extensionPath: string) {
         this._panel = panel;
         this._extensionPath = extensionPath;
+
+        // Get IRIS server configuration from settings
+        const config = vscode.workspace.getConfiguration('intersystems-objectscript-class-diagram-view.server');
+        this._irisServer = {
+            host: config.get('host') || 'localhost',
+            port: config.get('port') || '52773',
+            namespace: config.get('namespace') || 'USER'
+        };
+        
+        console.log('IRIS Server configuration:', this._irisServer);
 
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._panel.webview.onDidReceiveMessage(
@@ -358,10 +368,10 @@ export class ClassDiagramPanel {
                             console.log('Is method?', isMethod);
 
                             if (!isProperty && !isMethod) {
-                                // 这是一个类名 - 处理带引号和不带引号的情况
+                                // This is a class name - handle both quoted and unquoted cases
                                 let className = content;
                                 
-                                // 如果有引号，去掉引号
+                                // If there are quotes, remove them
                                 if (content.startsWith('"') && content.endsWith('"')) {
                                     className = content.substring(1, content.length - 1);
                                 }

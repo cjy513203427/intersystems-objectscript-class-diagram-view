@@ -77,6 +77,36 @@
           "group": "z_commands"
         }
       ]
+    },
+    "configuration": {
+      "title": "InterSystems ObjectScript Class Diagram",
+      "properties": {
+        "intersystems-objectscript-class-diagram-view.server.host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "IRIS server host"
+        },
+        "intersystems-objectscript-class-diagram-view.server.port": {
+          "type": "string",
+          "default": "52773",
+          "description": "IRIS server port"
+        },
+        "intersystems-objectscript-class-diagram-view.server.namespace": {
+          "type": "string",
+          "default": "USER",
+          "description": "IRIS namespace"
+        },
+        "intersystems-objectscript-class-diagram-view.server.username": {
+          "type": "string",
+          "default": "_SYSTEM",
+          "description": "IRIS server username"
+        },
+        "intersystems-objectscript-class-diagram-view.server.password": {
+          "type": "string",
+          "default": "SYS",
+          "description": "IRIS server password"
+        }
+      }
     }
   },
   "scripts": {

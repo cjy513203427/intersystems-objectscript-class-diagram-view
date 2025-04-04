@@ -185,7 +185,7 @@ export async function generateClassDiagram(uri: vscode.Uri, useWebServer: boolea
 }
 
 async function exportDiagram(umlFilePath: string): Promise<string> {
-    // 使用绝对路径
+    // Use absolute path
     const extensionPath = vscode.extensions.getExtension('JinyaoChen.intersystems-objectscript-class-diagram-view')?.extensionPath || 
                           path.join(path.dirname(path.dirname(path.dirname(__dirname))));
     const jarPath = path.join(extensionPath, 'lib', 'plantuml-mit-1.2025.0.jar');
