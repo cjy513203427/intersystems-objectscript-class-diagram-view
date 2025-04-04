@@ -51,11 +51,11 @@ export function activate(context: vscode.ExtensionContext) {
       }
       
       if (uri) {
-        // 从URI中提取类名
+        // Extract class name from URI
         let className = await getFullClassNameFromUri(uri) || '';
         
         if (!className) {
-          // 如果无法从URI中提取类名，提示用户输入
+          // If unable to extract class name from URI, prompt user to input
           className = await vscode.window.showInputBox({
             prompt: 'Enter the InterSystems class name (e.g., %String, %Library.DynamicObject)',
             placeHolder: '%Library.DynamicObject'
@@ -99,11 +99,11 @@ export function activate(context: vscode.ExtensionContext) {
       }
       
       if (uri) {
-        // 从URI中提取类名或请求用户输入
+        // Extract class name from URI or prompt user to input
         let className = await getFullClassNameFromUri(uri) || '';
         
         if (!className) {
-          // 如果无法从URI中提取类名，提示用户输入
+          // If unable to extract class name from URI, prompt user to input
           className = await vscode.window.showInputBox({
             prompt: 'Enter the InterSystems class name for connection test (e.g., %String, %Library.DynamicObject)',
             placeHolder: '%Library.DynamicObject'
@@ -112,17 +112,17 @@ export function activate(context: vscode.ExtensionContext) {
         
         if (className) {
           try {
-            // 显示测试开始消息
+            // Show test start message
             vscode.window.showInformationMessage(`Testing IRIS connection with class: ${className}`);
             
-            // 创建服务器实例并测试连接
+            // Create server instance and test connection
             const classDiagramServer = new ClassDiagramServer();
             await classDiagramServer.testConnection(className);
             
-            // 显示成功消息
+            // Show success message
             vscode.window.showInformationMessage(`Connection test successful for class: ${className}`);
           } catch (error) {
-            // 显示错误消息
+            // Show error message
             vscode.window.showErrorMessage(`Connection test failed: ${error instanceof Error ? error.message : String(error)}`);
           }
         } else {

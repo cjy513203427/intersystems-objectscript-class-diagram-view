@@ -1,4 +1,4 @@
-import { IClassInfo, IClassMethod, IClassProperty } from '../parser/classModel';
+import { IClassInfo, IClassMethod, IClassProperty, IClassParameter } from '../parser/classModel';
 
 /**
  * Generator for creating PlantUML diagrams from class information
@@ -23,6 +23,15 @@ export class PlantUmlGenerator {
     }
 
     /**
+     * Format a parameter for PlantUML display
+     * @param parameter Parameter to format
+     * @returns Formatted parameter string
+     */
+    private static formatParameter(parameter: IClassParameter): string {
+        return `+ ${parameter.name}`;
+    }
+
+    /**
      * Format a method for PlantUML display
      * @param method Method to format
      * @returns Formatted method string
@@ -42,12 +51,14 @@ export class PlantUmlGenerator {
     }
 
     /**
-     * Checks if the class has any members (properties or methods)
+     * Checks if the class has any members (properties, parameters or methods)
      * @param classInfo Class information
      * @returns True if class has members
      */
     private static hasMembers(classInfo: IClassInfo): boolean {
-        return classInfo.properties.length > 0 || classInfo.methods.length > 0;
+        return classInfo.properties.length > 0 || 
+               classInfo.parameters.length > 0 || 
+               classInfo.methods.length > 0;
     }
 
     /**
@@ -56,10 +67,14 @@ export class PlantUmlGenerator {
      * @returns Formatted member section
      */
     private static generateMembers(classInfo: IClassInfo): string {
-        const { properties, methods } = classInfo;
+        const { properties, parameters, methods } = classInfo;
         
         const formattedProperties = properties.map(prop => 
             this.formatProperty(prop)
+        );
+        
+        const formattedParameters = parameters.map(param => 
+            this.formatParameter(param)
         );
         
         const formattedMethods = methods.map(method => 
@@ -68,6 +83,7 @@ export class PlantUmlGenerator {
         
         return [
             ...formattedProperties,
+            ...formattedParameters,
             ...formattedMethods
         ].map(member => `  ${member}`).join('\n');
     }

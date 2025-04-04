@@ -53,11 +53,20 @@ export class ClassDiagramPanel {
                         break;
                     case 'openMethod':
                         console.log('Opening method:', message.methodName, 'in class:', message.className);
-                        await this.openMethodInIRIS(message.className, message.methodName);
+                        if (!message.className || message.className === message.methodName) {
+                            console.error('Invalid class name for method! Using methodName as className:', message.methodName);
+                            vscode.window.showErrorMessage(`无法确定方法 ${message.methodName} 所属的类，请查看控制台日志`);
+                        } else {
+                            await this.openMethodInIRIS(message.className, message.methodName);
+                        }
                         break;
                     case 'openProperty':
                         console.log('Opening property:', message.propertyName, 'in class:', message.className);
                         await this.openPropertyInIRIS(message.className, message.propertyName);
+                        break;
+                    case 'openParameter':
+                        console.log('Opening parameter:', message.parameterName, 'in class:', message.className);
+                        await this.openParameterInIRIS(message.className, message.parameterName);
                         break;
                     case 'saveViewState':
                         this._viewState = {
@@ -142,6 +151,30 @@ export class ClassDiagramPanel {
         } catch (error) {
             console.error('Error opening property in browser:', error);
             vscode.window.showErrorMessage(`Error opening property ${propertyName} in class ${className}: ${error}`);
+        }
+    }
+
+    /**
+     * Opens a parameter in InterSystems IRIS Documatic
+     * @param className Class containing the parameter
+     * @param parameterName Parameter to open
+     */
+    private async openParameterInIRIS(className: string, parameterName: string) {
+        // Clean up class name and parameter name
+        className = className.replace(/^"/, '').replace(/"$/, '');
+        
+        // Show message
+        vscode.window.showInformationMessage(`Opening parameter ${parameterName} in class ${className}`);
+        
+        try {
+            // For parameters, we link directly to the class just like properties
+            const irisUrl = `http://${this._irisServer.host}:${this._irisServer.port}/csp/documatic/%25CSP.Documatic.cls?LIBRARY=${this._irisServer.namespace}&CLASSNAME=${encodeURIComponent(className)}`;
+            
+            console.log('Opening URL for parameter:', irisUrl);
+            vscode.env.openExternal(vscode.Uri.parse(irisUrl));
+        } catch (error) {
+            console.error('Error opening parameter in browser:', error);
+            vscode.window.showErrorMessage(`Error opening parameter ${parameterName} in class ${className}: ${error}`);
         }
     }
 
@@ -331,22 +364,53 @@ export class ClassDiagramPanel {
 
                         // Helper function to find the parent class name of a property/method
                         function findParentClassName(element) {
+                            console.log('Finding parent class for element:', element.textContent?.trim());
                             let current = element.closest('g');
+                            
+                            // 遍历所有父级g元素
                             while (current && !current.matches('svg')) {
-                                const texts = Array.from(current.querySelectorAll('text'));
-                                // Find the first text that looks like a class name
-                                const classText = texts.find(t => {
-                                    const content = t.textContent?.trim();
-                                    return content && !content.includes(':') && !content.includes('(') && !content.startsWith('+');
-                                });
+                                console.log('Checking element group:', current);
                                 
-                                if (classText) {
-                                    const className = classText.textContent.trim();
-                                    console.log('Found parent class:', className);
-                                    return className;
+                                // 查找所有文本节点
+                                const texts = Array.from(current.querySelectorAll('text'));
+                                console.log('Found text elements in group:', texts.length);
+                                
+                                // 尝试找到最顶层的类文本，通常是g元素中的第一个文本元素
+                                if (texts.length > 0) {
+                                    // 先遍历所有文本，查找明显的类名（带引号的）
+                                    for (const t of texts) {
+                                        const content = t.textContent?.trim();
+                                        // 类名通常以引号包围
+                                        if (content && content.startsWith('"') && content.endsWith('"')) {
+                                            let className = content.substring(1, content.length - 1);
+                                            console.log('Found quoted class name:', className);
+                                            return className;
+                                        }
+                                    }
+                                    
+                                    // 如果没有找到明确的类名，尝试找包含点号的文本（通常是完整类名）
+                                    for (const t of texts) {
+                                        const content = t.textContent?.trim();
+                                        if (content && content.includes('.') && !content.includes('(') && !content.includes(':')) {
+                                            console.log('Found class name with dot:', content);
+                                            return content;
+                                        }
+                                    }
+                                    
+                                    // 最后一种情况，尝试找第一个不像方法或属性的文本
+                                    for (const t of texts) {
+                                        const content = t.textContent?.trim();
+                                        if (content && !content.includes('(') && !content.includes(':') && !content.startsWith('+')) {
+                                            console.log('Found probable class name:', content);
+                                            return content;
+                                        }
+                                    }
                                 }
+                                
+                                // 继续向上查找父元素
                                 current = current.parentElement;
                             }
+                            
                             console.log('No parent class found');
                             return null;
                         }
@@ -358,16 +422,29 @@ export class ClassDiagramPanel {
 
                             console.log('Processing text element:', content);
                             
-                            // Fix method detection
+                            // 识别规则优先级（从高到低检测）
+                            
+                            // 1. 方法检测 - 包含括号
                             const isMethod = content.includes('(') && content.includes(')');
                             
-                            // Fix property detection
+                            // 2. 属性检测 - 包含冒号并可能带有类型
                             const isProperty = content.includes(':') && !isMethod;
+                            
+                            // 3. 类名检测 - 用引号包围或包含点号且不是属性或方法
+                            const isClassName = !isMethod && !isProperty && (
+                                (content.startsWith('"') && content.endsWith('"')) || 
+                                (content.includes('.') && !content.includes('+'))
+                            );
+                            
+                            // 4. 参数检测 - 不是上述任何一种
+                            const isParameter = !isMethod && !isProperty && !isClassName;
 
-                            console.log('Is property?', isProperty);
                             console.log('Is method?', isMethod);
+                            console.log('Is property?', isProperty);
+                            console.log('Is className?', isClassName);
+                            console.log('Is parameter?', isParameter);
 
-                            if (!isProperty && !isMethod) {
+                            if (isClassName) {
                                 // This is a class name - handle both quoted and unquoted cases
                                 let className = content;
                                 
@@ -391,17 +468,42 @@ export class ClassDiagramPanel {
                                 console.log('Processing method:', content);
                                 const parentClass = findParentClassName(text);
                                 if (parentClass) {
-                                    // Simple extraction - get everything before the opening parenthesis
+                                    // 提取方法名和返回类型 - 格式如"Execute(): %Status"
                                     const methodName = content.split('(')[0].trim();
-                                    console.log('Setting up click handler for method:', methodName);
+                                    // 可选：提取返回类型供将来使用
+                                    const returnType = content.includes('):') ? content.split('):')[1].trim() : '';
+                                    
+                                    console.log('Setting up click handler for method:', methodName, 'returnType:', returnType, 'in class:', parentClass);
                                     text.style.cursor = 'pointer';
                                     text.addEventListener('click', (e) => {
                                         e.stopPropagation();
                                         console.log('Method clicked:', methodName, 'in class:', parentClass);
+                                        // 确保className不为空且不等于methodName
+                                        if (parentClass && parentClass !== methodName) {
+                                            vscode.postMessage({
+                                                command: 'openMethod',
+                                                className: parentClass,
+                                                methodName: methodName
+                                            });
+                                        } else {
+                                            console.error('Invalid parent class for method:', methodName);
+                                            vscode.postMessage({
+                                                command: 'openClass',
+                                                className: methodName
+                                            });
+                                        }
+                                    });
+                                } else {
+                                    console.error('Failed to find parent class for method:', content);
+                                    // 即使找不到父类，也添加点击处理，直接打开类
+                                    text.style.cursor = 'pointer';
+                                    const methodName = content.split('(')[0].trim();
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        console.log('Method clicked (fallback):', methodName);
                                         vscode.postMessage({
-                                            command: 'openMethod',
-                                            className: parentClass,
-                                            methodName: methodName
+                                            command: 'openClass',
+                                            className: methodName
                                         });
                                     });
                                 }
@@ -410,9 +512,13 @@ export class ClassDiagramPanel {
                                 console.log('Processing property:', content);
                                 const parentClass = findParentClassName(text);
                                 if (parentClass) {
-                                    // Simple extraction - get everything before the colon
-                                    const propertyName = content.split(':')[0].trim();
-                                    console.log('Setting up click handler for property:', propertyName);
+                                    // 提取属性名和类型 - 格式如"MultiplyDto: EXORPRO.K5.OpenApi.UnitTest.Helper.Dto.MultiplyDto"
+                                    const parts = content.split(':');
+                                    const propertyName = parts[0].trim();
+                                    // 可选：提取类型供将来使用
+                                    const propertyType = parts.length > 1 ? parts[1].trim() : '';
+                                    
+                                    console.log('Setting up click handler for property:', propertyName, 'type:', propertyType);
                                     text.style.cursor = 'pointer';
                                     text.addEventListener('click', (e) => {
                                         e.stopPropagation();
@@ -421,6 +527,25 @@ export class ClassDiagramPanel {
                                             command: 'openProperty',
                                             className: parentClass,
                                             propertyName: propertyName
+                                        });
+                                    });
+                                }
+                            } else if (isParameter) {
+                                // This is a parameter
+                                console.log('Processing parameter:', content);
+                                const parentClass = findParentClassName(text);
+                                if (parentClass) {
+                                    // 提取参数名，考虑有无+号前缀
+                                    const parameterName = content.startsWith('+') ? content.substring(1).trim() : content.trim();
+                                    console.log('Setting up click handler for parameter:', parameterName);
+                                    text.style.cursor = 'pointer';
+                                    text.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        console.log('Parameter clicked:', parameterName, 'in class:', parentClass);
+                                        vscode.postMessage({
+                                            command: 'openParameter',
+                                            className: parentClass,
+                                            parameterName: parameterName
                                         });
                                     });
                                 }

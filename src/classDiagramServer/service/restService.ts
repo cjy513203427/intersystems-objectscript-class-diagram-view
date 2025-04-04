@@ -176,4 +176,23 @@ export class RestService {
         this.log(`No methods found for: ${className}`);
         return [];
     }
+
+    /**
+     * Get class parameters
+     * @param className Full class name
+     * @returns Promise with parameter information
+     */
+    public async getClassParameters(className: string): Promise<any[]> {
+        this.log(`\nGetting parameters for: ${className}`);
+        const query = `SELECT Name FROM %Dictionary.ParameterDefinition WHERE Parent = ?`;
+        const result = await this.executeQuery(query, [className]);
+        
+        if (result && result.result && result.result.content) {
+            this.log(`Found ${result.result.content.length} parameters for: ${className}`);
+            return result.result.content;
+        }
+        
+        this.log(`No parameters found for: ${className}`);
+        return [];
+    }
 } 

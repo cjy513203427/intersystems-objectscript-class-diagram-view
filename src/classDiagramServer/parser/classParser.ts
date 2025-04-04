@@ -29,6 +29,9 @@ export class ClassParser {
             // Get properties
             const properties = await this.restService.getClassProperties(className);
             
+            // Get parameters
+            const parameters = await this.restService.getClassParameters(className);
+            
             // Get methods
             const methods = await this.restService.getClassMethods(className);
             
@@ -40,6 +43,7 @@ export class ClassParser {
                 className,
                 superClasses,
                 properties,
+                parameters,
                 methods
             );
         } catch (error) {
@@ -49,6 +53,7 @@ export class ClassParser {
                 className,
                 superClasses: [],
                 properties: [],
+                parameters: [],
                 methods: [],
                 isAbstract: false
             };

@@ -7,6 +7,14 @@ export interface IClassProperty {
 }
 
 /**
+ * Represents a parameter of a class
+ */
+export interface IClassParameter {
+    name: string;
+    value: string;
+}
+
+/**
  * Represents a method of a class
  */
 export interface IClassMethod {
@@ -22,6 +30,7 @@ export interface IClassInfo {
     className: string;
     superClasses: string[];
     properties: IClassProperty[];
+    parameters: IClassParameter[];
     methods: IClassMethod[];
     isAbstract: boolean;
 }
@@ -52,6 +61,16 @@ export class ClassModelHelper {
     }
 
     /**
+     * Convert parameter database result to IClassParameter model
+     */
+    public static toClassParameter(dbParameter: any): IClassParameter {
+        return {
+            name: dbParameter.Name || '',
+            value: '' // We don't have Default value from SQL query
+        };
+    }
+
+    /**
      * Convert method database result to IClassMethod model
      */
     public static toClassMethod(dbMethod: any): IClassMethod {
@@ -68,13 +87,15 @@ export class ClassModelHelper {
     public static toClassInfo(
         className: string,
         superClasses: string[], 
-        properties: any[], 
+        properties: any[],
+        parameters: any[],
         methods: any[]
     ): IClassInfo {
         return {
             className,
             superClasses,
             properties: properties.map(p => this.toClassProperty(p)),
+            parameters: parameters.map(p => this.toClassParameter(p)),
             methods: methods.map(m => this.toClassMethod(m)),
             isAbstract: this.isAbstract(className)
         };
