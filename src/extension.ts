@@ -86,57 +86,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Register the command to test IRIS REST connection
-  let testIrisConnectionDisposable = vscode.commands.registerCommand(
-    'intersystems-objectscript-class-diagram-view.testIrisConnection',
-    async (uri?: vscode.Uri) => {
-      // If uri is not provided, try to get it from active editor
-      if (!uri) {
-        const activeEditor = vscode.window.activeTextEditor;
-        if (activeEditor) {
-          uri = activeEditor.document.uri;
-        }
-      }
-      
-      if (uri) {
-        // Extract class name from URI or prompt user to input
-        let className = await getFullClassNameFromUri(uri) || '';
-        
-        if (!className) {
-          // If unable to extract class name from URI, prompt user to input
-          className = await vscode.window.showInputBox({
-            prompt: 'Enter the InterSystems class name for connection test (e.g., %String, %Library.DynamicObject)',
-            placeHolder: '%Library.DynamicObject'
-          }) || '';
-        }
-        
-        if (className) {
-          try {
-            // Show test start message
-            vscode.window.showInformationMessage(`Testing IRIS connection with class: ${className}`);
-            
-            // Create server instance and test connection
-            const classDiagramServer = new ClassDiagramServer();
-            await classDiagramServer.testConnection(className);
-            
-            // Show success message
-            vscode.window.showInformationMessage(`Connection test successful for class: ${className}`);
-          } catch (error) {
-            // Show error message
-            vscode.window.showErrorMessage(`Connection test failed: ${error instanceof Error ? error.message : String(error)}`);
-          }
-        } else {
-          vscode.window.showInformationMessage('No class name provided. Test canceled.');
-        }
-      } else {
-        vscode.window.showInformationMessage('Please open a .cls file first');
-      }
-    }
-  );
-
   context.subscriptions.push(generateLocalDisposable);
   context.subscriptions.push(generateServerDisposable);
-  context.subscriptions.push(testIrisConnectionDisposable);
 }
 
 export function deactivate() {}

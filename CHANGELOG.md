@@ -1,42 +1,65 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to the "InterSystems ObjectScript Class Diagram View" extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2025-04-04
+### Added
+- Support for connecting to InterSystems IRIS instances to generate class diagrams directly from server
+- New command for generating InterSystems class diagrams
+- Integration with IRIS REST API for fetching class information
+- Ability to browse class details in the IRIS Management Portal by clicking on diagram elements
+- Support for navigating to class, method, and property definitions in IRIS Documatic
 
-### 🚀 New Features
-- None
+### Changed
+- Improved error handling and feedback for connection issues
+- Enhanced SVG rendering and interaction capabilities
+- Optimized diagram generation process
+- Updated UI for better user experience
 
-### 🐛 Bug Fixes
-- None
+### Fixed
+- Correct URL format for opening classes in IRIS Documatic
+- Fixed clicking on class elements in SVG diagrams
+- Resolved issues with diagram rendering in different environments
 
-### 📝 Documentation
-- None
-
-### 🔧 Maintenance
-- None
-
-### ⚡️ Performance Improvements
-- None
-
-### 💥 Breaking Changes
-- None
+### Removed
+- Test IRIS connection command and related functionality
 
 ## [0.1.0] - 2025-02-28
+### Added
+- Support for generating class diagrams using PlantUML Web Server (no Java required)
+- Documentation on using the PlantUML Web Server option
 
-### 🚀 New Features
-- Added support for generating class diagrams using PlantUML Web Server (no Java required)
-- Implemented user choice between local Java and PlantUML Web Server for diagram generation
-- Added ability to copy PlantUML URL to clipboard or open directly in browser
+### Changed
+- Improved UI for diagram generation options
+- Enhanced documentation with usage examples
+- Better handling of large class diagrams
+
+### Fixed
+- Various minor bugs and performance issues
+
+## [0.0.1] - 2025-02-21
+### Added
+- Initial release
+- Support for generating class diagrams from .cls files using PlantUML
+- Context menu integration in editor and explorer
+- Interactive class diagram navigation
+- Keyboard shortcut (Ctrl+Alt+U) for quick diagram generation
+
+### 🎨 UI Changes
+- 🖼️ Update extension icon
+
+### 🔧 Maintenance
+- ⚙️ Update minimum VSCode version requirement from 1.74.0 to 1.96.0
 
 ### 📝 Documentation
-- Updated README files (English, Chinese, German) with new PlantUML Web Server functionality
-- Added detailed instructions for using the PlantUML Web Server option
-- Improved requirements section with a clear table format for better readability
-- Enhanced documentation with clearer distinction between required and optional dependencies
+- Add animated GIF demonstrations for installation and usage
+- Add detailed known issues section in README
+  - External library navigation limitations
+  - Subclass generation functionality
+  - Large project performance considerations
 
 ### 🔧 Maintenance
 - Optimized command structure by consolidating diagram generation commands
@@ -46,37 +69,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ⚡️ Performance Improvements
 - Streamlined diagram generation process for PlantUML Web Server option
 - Reduced code complexity by removing unnecessary WebView creation for web server URLs
-
-## [0.0.3] - 2025-02-24
-
-### 🎨 UI Changes
-- 🖼️ Update extension icon
-
-### 🔧 Maintenance
-- ⚙️ Update minimum VSCode version requirement from 1.74.0 to 1.96.0
-
-## [0.0.2] - 2024-02-19
-
-### 📝 Documentation
-- Add animated GIF demonstrations for installation and usage
-- Add detailed known issues section in README
-  - External library navigation limitations
-  - Subclass generation functionality
-  - Large project performance considerations
-
-## [0.0.1] - 2024-02-19
-
-### 🎉 First Release
-- Initial project setup with basic functionality framework
-- Core features:
-  - VSCode extension setup
-  - Basic class diagram visualization
-  - PlantUML integration foundation
-
-### 📝 Documentation
-- Initial README.md
-- Basic usage documentation
-- Development setup guide
 
 [Unreleased]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/cjy513203427/intersystems-objectscript-class-diagram-view/compare/v0.0.3...v0.1.0

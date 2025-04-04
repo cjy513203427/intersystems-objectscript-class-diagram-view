@@ -2,7 +2,7 @@
   "name": "intersystems-objectscript-class-diagram-view",
   "displayName": "InterSystems ObjectScript Class Diagram View",
   "description": "",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "publisher": "JinyaoChen",
   "icon": "images/icon.png",
   "engines": {
@@ -29,10 +29,6 @@
       {
         "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
         "title": "Generate InterSystems Class Diagram"
-      },
-      {
-        "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
-        "title": "Test IRIS REST Connection"
       }
     ],
     "keybindings": [
@@ -53,11 +49,6 @@
           "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
           "when": "resourceExtname == .cls",
           "group": "z_commands"
-        },
-        {
-          "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
-          "when": "resourceExtname == .cls",
-          "group": "z_commands"
         }
       ],
       "explorer/context": [
@@ -68,11 +59,6 @@
         },
         {
           "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
-          "when": "resourceExtname == .cls",
-          "group": "z_commands"
-        },
-        {
-          "command": "intersystems-objectscript-class-diagram-view.testIrisConnection",
           "when": "resourceExtname == .cls",
           "group": "z_commands"
         }
