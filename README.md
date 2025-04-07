@@ -99,7 +99,6 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-- **Navigation to external libraries**: No ability to navigate to InterSystems ObjectScript library definitions through click interactions
 - **Subclass generation**: Missing functionality to generate subclass diagrams for the current class
 - **Performance for large projects**:
   - Generating diagrams for large folders using right-click can have significant delays

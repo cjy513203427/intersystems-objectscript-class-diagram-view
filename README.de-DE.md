@@ -99,7 +99,6 @@ Diese Erweiterung bietet folgende Einstellungen:
 
 ## Bekannte Probleme
 
-- **Navigation in externen Bibliotheken**: Keine Navigation zu InterSystems ObjectScript-Bibliotheksdefinitionen durch Klickinteraktionen möglich
 - **Unterklassen-Generierung**: Fehlende Funktionalität zur Generierung von Unterklassendiagrammen für die aktuelle Klasse
 - **Performance bei großen Projekten**:
   - Generierung von Diagrammen für große Ordner per Rechtsklick kann erhebliche Verzögerungen aufweisen
