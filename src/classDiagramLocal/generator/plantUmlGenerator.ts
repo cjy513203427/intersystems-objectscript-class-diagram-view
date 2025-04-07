@@ -1,12 +1,6 @@
 import { IClassInfo } from '../parser/classParser';
 
 export class PlantUmlGenerator {
-  /**
-   * Escapes special characters in class names for PlantUML compatibility
-   */
-  private static escapeClassName(name: string): string {
-    return name;
-  }
 
   /**
    * Checks if the class has any members (attributes or methods)

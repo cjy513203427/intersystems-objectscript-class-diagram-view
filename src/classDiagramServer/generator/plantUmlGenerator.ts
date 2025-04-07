@@ -4,14 +4,6 @@ import { IClassInfo, IClassMethod, IClassProperty, IClassParameter } from '../pa
  * Generator for creating PlantUML diagrams from class information
  */
 export class PlantUmlGenerator {
-    /**
-     * Escapes special characters in class names for PlantUML compatibility
-     * @param name Class name to escape
-     * @returns Escaped class name
-     */
-    private static escapeClassName(name: string): string {
-        return name;
-    }
 
     /**
      * Format a property for PlantUML display
