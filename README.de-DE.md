@@ -12,6 +12,8 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 - Visualisierung von Klassenbeziehungen, Eigenschaften und Methoden
 - Basierend auf PlantUML für zuverlässige Diagrammdarstellung
 - Generierung von Diagrammen mit PlantUML Web Server (keine Java-Installation erforderlich)
+- **NEU:** Direkte Integration mit InterSystems IRIS für serverseitige Klasseninformationen
+- **NEU:** Klassen direkt in IRIS Documatic aus dem Diagramm durchsuchen
 - Interaktive Klassendiagramm-Navigation
   - Klicken Sie auf Klassennamen, Eigenschaften oder Methoden, um schnell zum entsprechenden Code zu springen
   - SVG-Diagramme in HTML eingebettet für reibungslose Interaktion
@@ -56,6 +58,18 @@ Bei Auswahl der Option "PlantUML Web Server":
 - Sie können die URL in die Zwischenablage kopieren oder direkt im Browser öffnen
 - Die URL kann mit anderen geteilt werden, um das Diagramm anzuzeigen
 
+### NEU: Verwendung der InterSystems IRIS-Integration
+1. Konfigurieren Sie Ihre IRIS-Verbindung in den VS Code-Einstellungen:
+   - Gehen Sie zu Einstellungen > Erweiterungen > InterSystems ObjectScript Klassendiagramm
+   - Geben Sie Ihren IRIS-Server-Host, Port, Namespace, Benutzernamen und Passwort ein
+2. Öffnen Sie eine `.cls`-Datei im Editor
+3. Rechtsklick und wählen Sie "InterSystems Klassendiagramm generieren"
+4. Die Erweiterung verbindet sich mit Ihrem IRIS-Server und generiert ein Diagramm mit Klasseninformationen vom Server
+5. Klicken Sie auf Klassennamen, Eigenschaften oder Methoden im Diagramm, um:
+   - Die Klasse in IRIS Documatic zu öffnen
+   - Eigenschaftsdefinitionen in IRIS anzuzeigen
+   - Zu Methodenimplementierungen in IRIS zu navigieren
+
 ### Interaktive Funktionen
 - Klicken Sie auf Diagrammelemente, um:
   - Zu Klassendefinitionen zu springen
@@ -73,10 +87,18 @@ Bei Auswahl der Option "PlantUML Web Server":
 Diese Erweiterung stellt folgende Befehle bereit:
 
 * `intersystems-objectscript-class-diagram-view.generateClassDiagram`: Generiert ein Klassendiagramm für die ausgewählte Datei oder den ausgewählten Ordner
+* `intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram`: Generiert ein Klassendiagramm mit IRIS-Serverinformationen
+
+Diese Erweiterung bietet folgende Einstellungen:
+
+* `intersystems-objectscript-class-diagram-view.server.host`: IRIS-Server-Host
+* `intersystems-objectscript-class-diagram-view.server.port`: IRIS-Server-Port
+* `intersystems-objectscript-class-diagram-view.server.namespace`: IRIS-Namespace
+* `intersystems-objectscript-class-diagram-view.server.username`: IRIS-Server-Benutzername
+* `intersystems-objectscript-class-diagram-view.server.password`: IRIS-Server-Passwort
 
 ## Bekannte Probleme
 
-- **Navigation in externen Bibliotheken**: Keine Navigation zu InterSystems ObjectScript-Bibliotheksdefinitionen durch Klickinteraktionen möglich
 - **Unterklassen-Generierung**: Fehlende Funktionalität zur Generierung von Unterklassendiagrammen für die aktuelle Klasse
 - **Performance bei großen Projekten**:
   - Generierung von Diagrammen für große Ordner per Rechtsklick kann erhebliche Verzögerungen aufweisen

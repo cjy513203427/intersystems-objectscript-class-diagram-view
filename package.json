@@ -2,7 +2,7 @@
   "name": "intersystems-objectscript-class-diagram-view",
   "displayName": "InterSystems ObjectScript Class Diagram View",
   "description": "",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "JinyaoChen",
   "icon": "images/icon.png",
   "engines": {
@@ -25,6 +25,10 @@
       {
         "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
         "title": "Generate Class Diagram"
+      },
+      {
+        "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
+        "title": "Generate InterSystems Class Diagram"
       }
     ],
     "keybindings": [
@@ -40,6 +44,11 @@
           "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
           "when": "resourceExtname == .cls",
           "group": "z_commands"
+        },
+        {
+          "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
+          "when": "resourceExtname == .cls",
+          "group": "z_commands"
         }
       ],
       "explorer/context": [
@@ -47,8 +56,43 @@
           "command": "intersystems-objectscript-class-diagram-view.generateClassDiagram",
           "when": "resourceExtname == .cls || explorerResourceIsFolder",
           "group": "z_commands"
+        },
+        {
+          "command": "intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram",
+          "when": "resourceExtname == .cls",
+          "group": "z_commands"
         }
       ]
+    },
+    "configuration": {
+      "title": "InterSystems ObjectScript Class Diagram",
+      "properties": {
+        "intersystems-objectscript-class-diagram-view.server.host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "IRIS server host"
+        },
+        "intersystems-objectscript-class-diagram-view.server.port": {
+          "type": "string",
+          "default": "52773",
+          "description": "IRIS server port"
+        },
+        "intersystems-objectscript-class-diagram-view.server.namespace": {
+          "type": "string",
+          "default": "USER",
+          "description": "IRIS namespace"
+        },
+        "intersystems-objectscript-class-diagram-view.server.username": {
+          "type": "string",
+          "default": "_SYSTEM",
+          "description": "IRIS server username"
+        },
+        "intersystems-objectscript-class-diagram-view.server.password": {
+          "type": "string",
+          "default": "SYS",
+          "description": "IRIS server password"
+        }
+      }
     }
   },
   "scripts": {
@@ -60,14 +104,18 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.96.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
-    "eslint": "^9.16.0",
-    "typescript": "^5.7.2",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@types/axios": "^0.14.4",
+    "axios": "^1.8.2"
   }
 }
