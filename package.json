@@ -2,7 +2,7 @@
   "name": "intersystems-objectscript-class-diagram-view",
   "displayName": "InterSystems ObjectScript Class Diagram View",
   "description": "",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "JinyaoChen",
   "icon": "images/icon.png",
   "engines": {

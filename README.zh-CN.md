@@ -58,10 +58,13 @@
 - 您可以将 URL 复制到剪贴板或直接在浏览器中打开
 - 可以与他人共享 URL 以查看图表
 
-### 新增：使用 InterSystems IRIS 集成
+### 使用 IRIS 集成生成类图
+此功能依赖于 Intersystem 插件，它将从所选类生成所有类属性、参数和方法。
+需要注意的是，该功能会生成整个继承层次结构，即使是本地项目中不存在的类也会包含在内。
 1. 在 VS Code 设置中配置您的 IRIS 连接：
    - 前往设置 > 扩展 > InterSystems ObjectScript 类图
    - 输入您的 IRIS 服务器主机、端口、命名空间、用户名和密码
+   ![配置 IRIS 设置](images/configure_iris.gif)
 2. 在编辑器中打开 `.cls` 文件
 3. 右键点击并选择"生成 InterSystems 类图"
 4. 扩展将连接到您的 IRIS 服务器并使用服务器中的类信息生成图表
@@ -69,6 +72,7 @@
    - 在 IRIS Documatic 中打开类
    - 在 IRIS 中查看属性定义
    - 在 IRIS 中导航到方法实现
+   ![生成 InterSystems 类图](images/generate_intersystems_class_diagram.gif)
 
 ### 交互功能
 - 点击图表元素可以：

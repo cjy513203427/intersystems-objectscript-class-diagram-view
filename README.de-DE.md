@@ -58,10 +58,13 @@ Bei Auswahl der Option "PlantUML Web Server":
 - Sie können die URL in die Zwischenablage kopieren oder direkt im Browser öffnen
 - Die URL kann mit anderen geteilt werden, um das Diagramm anzuzeigen
 
-### NEU: Verwendung der InterSystems IRIS-Integration
+### Klassendiagramm mit IRIS-Integration generieren
+Diese Funktion ist abhängig von Intersystem-Plugins und generiert alle Klasseneigenschaften, Parameter und Methoden aus der ausgewählten Klasse.
+Es ist wichtig zu beachten, dass die Funktion die gesamte Vererbungshierarchie generiert, auch für Klassen, die im lokalen Projekt nicht vorhanden sind.
 1. Konfigurieren Sie Ihre IRIS-Verbindung in den VS Code-Einstellungen:
    - Gehen Sie zu Einstellungen > Erweiterungen > InterSystems ObjectScript Klassendiagramm
    - Geben Sie Ihren IRIS-Server-Host, Port, Namespace, Benutzernamen und Passwort ein
+   ![IRIS-Einstellungen konfigurieren](images/configure_iris.gif)
 2. Öffnen Sie eine `.cls`-Datei im Editor
 3. Rechtsklick und wählen Sie "InterSystems Klassendiagramm generieren"
 4. Die Erweiterung verbindet sich mit Ihrem IRIS-Server und generiert ein Diagramm mit Klasseninformationen vom Server
@@ -69,6 +72,7 @@ Bei Auswahl der Option "PlantUML Web Server":
    - Die Klasse in IRIS Documatic zu öffnen
    - Eigenschaftsdefinitionen in IRIS anzuzeigen
    - Zu Methodenimplementierungen in IRIS zu navigieren
+   ![InterSystems Klassendiagramm generieren](images/generate_intersystems_class_diagram.gif)
 
 ### Interaktive Funktionen
 - Klicken Sie auf Diagrammelemente, um:
