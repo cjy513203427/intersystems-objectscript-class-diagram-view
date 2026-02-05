@@ -1,12 +1,35 @@
 import * as vscode from 'vscode';
-import { generateClassDiagram } from './classDiagramLocal/diagramGenerator';
+import { generateClassDiagram, generateClassDiagramForMultipleFiles } from './classDiagramLocal/diagramGenerator';
 import { ClassDiagramServer } from './classDiagramServer';
 
 export function activate(context: vscode.ExtensionContext) {
   // Register the command to generate class diagram
   let generateLocalDisposable = vscode.commands.registerCommand(
     'intersystems-objectscript-class-diagram-view.generateClassDiagram',
-    async (uri?: vscode.Uri) => {
+    async (uri?: vscode.Uri, selectedUris?: vscode.Uri[]) => {
+      // Check if multiple .cls files are selected
+      const isMultipleClsFilesSelected = selectedUris && 
+        selectedUris.length > 1 && 
+        selectedUris.every(u => u.fsPath.endsWith('.cls'));
+
+      if (isMultipleClsFilesSelected) {
+        // Handle multiple .cls files selection
+        const choice = await vscode.window.showQuickPick(
+          [
+            { label: 'Local Java', description: 'Generate diagram using local Java installation' },
+            { label: 'PlantUML Web Server', description: 'Generate diagram using PlantUML Web Server (no Java required)' }
+          ],
+          { placeHolder: 'Choose how to generate the diagram' }
+        );
+        
+        if (choice?.label === 'Local Java') {
+          generateClassDiagramForMultipleFiles(selectedUris, false);
+        } else if (choice?.label === 'PlantUML Web Server') {
+          generateClassDiagramForMultipleFiles(selectedUris, true);
+        }
+        return;
+      }
+
       // If uri is not provided, try to get it from active editor
       if (!uri) {
         const activeEditor = vscode.window.activeTextEditor;
