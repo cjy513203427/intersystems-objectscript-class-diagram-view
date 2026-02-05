@@ -7,7 +7,7 @@ A Visual Studio Code extension for generating UML class diagrams for InterSystem
 ## Features
 
 - Generation of UML class diagrams from `.cls` files
-- Support for class and folder-level diagram generation
+- Support for class, folder, and **multi-select** diagram generation
 - Context menu integration in both editor and explorer
 - Visualization of class relationships, properties, and methods
 - Based on PlantUML for reliable diagram representation
@@ -45,6 +45,8 @@ A Visual Studio Code extension for generating UML class diagrams for InterSystem
    ![Right Click File](images/right_click_file.gif)
    - Right-click on a folder containing `.cls` files and select "Generate Class Diagram"
    ![Right Click Folder](images/right_click_folder.gif)
+   - Select multiple `.cls` files (Ctrl/Cmd+Click), right-click and select "Generate Class Diagram"
+     - This creates a focused diagram containing only the selected classes and their full inheritance hierarchy
 3. When prompted, select your preferred generation method:
    - **Local Java**: Generates the diagram using local Java installation and displays it in VS Code
    - **PlantUML Web Server**: Generates a URL that can be opened in any browser (no Java installation required)
@@ -67,6 +69,8 @@ It is important to note that the feature generates the entire inheritance hierar
    ![Configure IRIS Settings](images/configure_iris.gif)
 2. Open a `.cls` file in the editor
 3. Right-click and select "Generate InterSystems Class Diagram"
+   - You can also select multiple `.cls` files (Ctrl/Cmd+Click), right-click and select "Generate InterSystems Class Diagram"
+     - This creates a diagram containing all selected classes with their complete information from the IRIS server
 4. The extension will connect to your IRIS server and generate a diagram using class information from the server
 5. Click on class names, properties, or methods in the diagram to:
    - Open the class in IRIS Documatic

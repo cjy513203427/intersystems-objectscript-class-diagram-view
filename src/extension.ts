@@ -64,7 +64,46 @@ export function activate(context: vscode.ExtensionContext) {
   // Register the command to generate InterSystems class diagram
   let generateServerDisposable = vscode.commands.registerCommand(
     'intersystems-objectscript-class-diagram-view.generateIntersystemsClassDiagram',
-    async (uri?: vscode.Uri) => {
+    async (uri?: vscode.Uri, selectedUris?: vscode.Uri[]) => {
+      // Check if multiple .cls files are selected
+      const isMultipleClsFilesSelected = selectedUris && 
+        selectedUris.length > 1 && 
+        selectedUris.every(u => u.fsPath.endsWith('.cls'));
+
+      if (isMultipleClsFilesSelected) {
+        // Handle multiple .cls files selection
+        const classNames: string[] = [];
+        
+        // Extract class names from all selected files
+        for (const selectedUri of selectedUris) {
+          const className = await getFullClassNameFromUri(selectedUri);
+          if (className) {
+            classNames.push(className);
+          }
+        }
+        
+        if (classNames.length === 0) {
+          vscode.window.showWarningMessage('Could not extract class names from selected files');
+          return;
+        }
+        
+        // Ask user to choose generation method
+        const choice = await vscode.window.showQuickPick(
+          [
+            { label: 'Local Java', description: 'Generate diagram using local Java installation' },
+            { label: 'PlantUML Web Server', description: 'Generate diagram using PlantUML Web Server (no Java required)' }
+          ],
+          { placeHolder: 'Choose how to generate the diagram' }
+        );
+        
+        if (choice?.label === 'Local Java') {
+          generateServerClassDiagramForMultipleClasses(classNames, false);
+        } else if (choice?.label === 'PlantUML Web Server') {
+          generateServerClassDiagramForMultipleClasses(classNames, true);
+        }
+        return;
+      }
+
       // If uri is not provided, try to get it from active editor
       if (!uri) {
         const activeEditor = vscode.window.activeTextEditor;
@@ -126,6 +165,20 @@ async function generateServerClassDiagram(className: string, useWebServer: boole
     await classDiagramServer.generateClassDiagram(className, useWebServer);
   } catch (error) {
     vscode.window.showErrorMessage(`Error generating server class diagram: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Generate a class diagram for multiple classes using server mode
+ * @param classNames Array of full class names
+ * @param useWebServer Whether to use the PlantUML web server instead of local Java
+ */
+async function generateServerClassDiagramForMultipleClasses(classNames: string[], useWebServer: boolean): Promise<void> {
+  try {
+    const classDiagramServer = new ClassDiagramServer();
+    await classDiagramServer.generateClassDiagramForMultipleClasses(classNames, useWebServer);
+  } catch (error) {
+    vscode.window.showErrorMessage(`Error generating server class diagram for multiple classes: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

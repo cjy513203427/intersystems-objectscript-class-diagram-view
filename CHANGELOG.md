@@ -5,6 +5,14 @@ All notable changes to the "InterSystems ObjectScript Class Diagram View" extens
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-05
+### Added
+- Multi-select support for local class diagram generation: Generate focused class diagrams for multiple selected .cls files
+- Multi-select support for InterSystems class diagram generation: Generate diagrams for multiple classes from IRIS server
+- Complete inheritance hierarchy: Automatically includes all parent classes (e.g., %RegisteredObject) in multi-select mode, even if not selected
+- New "SelectedClasses_N" file naming convention for multi-select diagrams
+- Both local and server modes now support multi-select with Ctrl/Cmd+Click in file explorer
+
 ## [1.0.1] - 2025-04-08
 ### Changed
 - Add gifs for README.md
