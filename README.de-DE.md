@@ -7,7 +7,7 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
 ## Funktionen
 
 - Generierung von UML-Klassendiagrammen aus `.cls`-Dateien
-- Unterstützung für Diagrammerstellung auf Klassen- und Ordnerebene
+- Unterstützung für Diagrammerstellung auf Klassen-, Ordner- und **Mehrfachauswahl**-Ebene
 - Integration des Kontextmenüs sowohl im Editor als auch im Explorer
 - Visualisierung von Klassenbeziehungen, Eigenschaften und Methoden
 - Basierend auf PlantUML für zuverlässige Diagrammdarstellung
@@ -45,6 +45,8 @@ Eine Visual Studio Code-Erweiterung zur Generierung von UML-Klassendiagrammen f�
    ![Rechtsklick auf Datei](images/right_click_file.gif)
    - Rechtsklick auf einen Ordner mit `.cls`-Dateien und wählen Sie "Klassendiagramm generieren"
    ![Rechtsklick auf Ordner](images/right_click_folder.gif)
+   - Wählen Sie mehrere `.cls`-Dateien aus (Strg/Cmd+Klick), rechtsklicken Sie und wählen Sie "Klassendiagramm generieren"
+     - Dies erstellt ein fokussiertes Diagramm, das nur die ausgewählten Klassen und ihre vollständige Vererbungshierarchie enthält
 3. Wählen Sie bei Aufforderung Ihre bevorzugte Generierungsmethode:
    - **Lokales Java**: Generiert das Diagramm mit lokaler Java-Installation und zeigt es in VS Code an
    - **PlantUML Web Server**: Generiert eine URL, die in jedem Browser geöffnet werden kann (keine Java-Installation erforderlich)
@@ -67,6 +69,8 @@ Es ist wichtig zu beachten, dass die Funktion die gesamte Vererbungshierarchie g
    ![IRIS-Einstellungen konfigurieren](images/configure_iris.gif)
 2. Öffnen Sie eine `.cls`-Datei im Editor
 3. Rechtsklick und wählen Sie "InterSystems Klassendiagramm generieren"
+   - Sie können auch mehrere `.cls`-Dateien auswählen (Strg/Cmd+Klick), rechtsklicken und "InterSystems Klassendiagramm generieren" wählen
+     - Dies erstellt ein Diagramm mit allen ausgewählten Klassen und ihren vollständigen Informationen vom IRIS-Server
 4. Die Erweiterung verbindet sich mit Ihrem IRIS-Server und generiert ein Diagramm mit Klasseninformationen vom Server
 5. Klicken Sie auf Klassennamen, Eigenschaften oder Methoden im Diagramm, um:
    - Die Klasse in IRIS Documatic zu öffnen

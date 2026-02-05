@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { ClassService } from './service/classService';
-import { ClassParser } from './parser/classParser';
+import { ClassParser, IClassInfo } from './parser/classParser';
 import { PlantUmlGenerator } from './generator/plantUmlGenerator';
 import { ClassDiagramPanel } from './webview/ClassDiagramPanel';
 
@@ -298,4 +298,115 @@ function encode64(data: Buffer): string {
     }
     
     return r;
+}
+
+/**
+ * Generates a class diagram for multiple selected .cls files
+ * @param uris Array of URIs of the selected .cls files
+ * @param useWebServer Whether to use the PlantUML Web Server (true) or local Java (false)
+ */
+export async function generateClassDiagramForMultipleFiles(uris: vscode.Uri[], useWebServer: boolean = false) {
+    // Validate that all URIs are .cls files
+    const invalidFiles = uris.filter(uri => !uri.fsPath.endsWith('.cls'));
+    if (invalidFiles.length > 0) {
+        vscode.window.showInformationMessage('Please select only .cls files');
+        return;
+    }
+
+    if (uris.length === 0) {
+        vscode.window.showInformationMessage('No .cls files selected');
+        return;
+    }
+
+    try {
+        // Get workspace root from the first file
+        const workspaceRoot = vscode.workspace.getWorkspaceFolder(uris[0])?.uri.fsPath || path.dirname(uris[0].fsPath);
+        
+        // Ensure output directory exists
+        const outputDir = await ensureOutputDirectory(workspaceRoot);
+
+        const classInfos: IClassInfo[] = [];
+        const classNames = new Set<string>();
+
+        // Parse all selected class files
+        for (const uri of uris) {
+            const fileContent = await fs.promises.readFile(uri.fsPath, 'utf8');
+            const classInfo = ClassParser.parseClassContent(fileContent);
+            classInfos.push(classInfo);
+            classNames.add(classInfo.className);
+        }
+
+        // Collect all superclasses (including those not in the selected set)
+        const allSuperClasses = new Set<string>();
+        for (const classInfo of classInfos) {
+            for (const superClass of classInfo.superClasses) {
+                if (!classNames.has(superClass)) {
+                    allSuperClasses.add(superClass);
+                }
+            }
+        }
+
+        // Create placeholder class info for superclasses that are not in the selected set
+        for (const superClassName of allSuperClasses) {
+            const superClassInfo: IClassInfo = {
+                className: superClassName,
+                superClasses: [],
+                attributes: [],
+                methods: [],
+                isAbstract: false
+            };
+            classInfos.push(superClassInfo);
+        }
+
+        // Build hierarchy map that includes all inheritance relationships
+        const classHierarchy = new Map<string, string[]>();
+        
+        for (const classInfo of classInfos) {
+            if (classInfo.superClasses.length > 0) {
+                classHierarchy.set(classInfo.className, classInfo.superClasses);
+            }
+        }
+
+        // Generate PlantUML content using the directory generator (works for multiple classes)
+        const umlContent = PlantUmlGenerator.generatePlantUmlForDirectory(classInfos, classHierarchy);
+
+        // Generate output file name based on selected classes
+        const outputFileName = `SelectedClasses_${classInfos.length}`;
+        const umlFilePath = path.join(outputDir, `${outputFileName}.puml`);
+        await fs.promises.writeFile(umlFilePath, umlContent);
+        
+        vscode.window.showInformationMessage(`UML file generated: ${umlFilePath}`);
+        
+        if (useWebServer) {
+            // Generate PlantUML Web Server URL
+            const plantUmlUrl = generatePlantUmlWebUrl(umlContent);
+            
+            // Show URL to user and offer to copy it
+            const copyAction = 'Copy URL';
+            const openAction = 'Open in Browser';
+            const result = await vscode.window.showInformationMessage(
+                `PlantUML diagram available at web server. You can copy the URL or open it in browser.`,
+                copyAction,
+                openAction
+            );
+            
+            if (result === copyAction) {
+                // Copy URL to clipboard
+                await vscode.env.clipboard.writeText(plantUmlUrl);
+                vscode.window.showInformationMessage('PlantUML URL copied to clipboard');
+            } else if (result === openAction) {
+                // Open URL in browser
+                vscode.env.openExternal(vscode.Uri.parse(plantUmlUrl));
+            }
+        } else {
+            // Use existing local Java method
+            const svgFilePath = await exportDiagram(umlFilePath);
+            // Use the directory of the first file as the base directory for class lookup
+            const baseDir = path.dirname(uris[0].fsPath);
+            // Show the diagram in a WebView
+            ClassDiagramPanel.createOrShow(__dirname, svgFilePath, baseDir, outputFileName);
+        }
+    } catch (err) {
+        vscode.window.showErrorMessage(`Failed to generate class diagram for multiple files: ${err}`);
+    }
 }

@@ -253,4 +253,116 @@ export class ClassDiagramServer {
         
         return r;
     }
+
+    /**
+     * Generate a class diagram for multiple classes
+     * @param classNames Array of full class names
+     * @param useWebServer Whether to use the PlantUML web server instead of local Java
+     */
+    public async generateClassDiagramForMultipleClasses(classNames: string[], useWebServer: boolean = false): Promise<void> {
+        try {
+            // Use custom output channel for logging
+            const outputChannel = vscode.window.createOutputChannel('Class Diagram Generator');
+            outputChannel.show();
+            outputChannel.appendLine(`Generating class diagram for ${classNames.length} classes`);
+            
+            // Collect all classes and their information
+            const allClasses = new Map<string, any>();
+            const classHierarchy = new Map<string, string[]>();
+            
+            // Parse each selected class
+            for (const className of classNames) {
+                outputChannel.appendLine(`Parsing class: ${className}`);
+                const { mainClass, relatedClasses, classHierarchy: hierarchy } = 
+                    await this.classParser.parseClassWithHierarchy(className);
+                
+                // Add main class
+                allClasses.set(mainClass.className, mainClass);
+                
+                // Add related classes
+                for (const relatedClass of relatedClasses) {
+                    if (!allClasses.has(relatedClass.className)) {
+                        allClasses.set(relatedClass.className, relatedClass);
+                    }
+                }
+                
+                // Merge hierarchy information
+                for (const [cls, parents] of hierarchy.entries()) {
+                    if (!classHierarchy.has(cls)) {
+                        classHierarchy.set(cls, parents);
+                    }
+                }
+            }
+            
+            // Convert to arrays for PlantUML generator
+            const classesArray = Array.from(allClasses.values());
+            
+            // Generate PlantUML diagram
+            outputChannel.appendLine(`Generating PlantUML diagram for all classes...`);
+            const pumlContent = PlantUmlGenerator.generatePlantUmlForDirectory(
+                classesArray,
+                classHierarchy
+            );
+            
+            // Get output directory
+            const outputDir = await this.getOutputDirectory();
+            
+            // Use descriptive name for multiple classes
+            const outputFileName = `SelectedClasses_${classNames.length}`;
+            const pumlFilePath = path.join(outputDir, `${outputFileName}.puml`);
+            
+            // Ensure directory exists
+            const dirName = path.dirname(pumlFilePath);
+            if (!fs.existsSync(dirName)) {
+                fs.mkdirSync(dirName, { recursive: true });
+            }
+            
+            // Save PUML file
+            fs.writeFileSync(pumlFilePath, pumlContent, 'utf8');
+            
+            outputChannel.appendLine(`PlantUML file generated: ${pumlFilePath}`);
+            
+            if (useWebServer) {
+                // Use PlantUML web server for diagram generation
+                outputChannel.appendLine(`Generating diagram using PlantUML web server...`);
+                const webUrl = this.generatePlantUmlWebUrl(pumlContent);
+                
+                // Show options to user
+                const copyAction = 'Copy URL';
+                const openAction = 'Open in Browser';
+                const result = await vscode.window.showInformationMessage(
+                    `PlantUML diagram available at web server.`,
+                    copyAction, 
+                    openAction
+                );
+                
+                if (result === copyAction) {
+                    await vscode.env.clipboard.writeText(webUrl);
+                    vscode.window.showInformationMessage('PlantUML URL copied to clipboard');
+                } else if (result === openAction) {
+                    vscode.env.openExternal(vscode.Uri.parse(webUrl));
+                }
+                
+                outputChannel.appendLine(`PlantUML web server URL: ${webUrl}`);
+            } else {
+                // Use local Java for diagram generation
+                outputChannel.appendLine(`Generating SVG using local Java...`);
+                const svgFilePath = await this.exportDiagram(pumlFilePath);
+                
+                outputChannel.appendLine(`SVG file generated: ${svgFilePath}`);
+                outputChannel.appendLine(`Opening diagram in web view...`);
+                
+                // Get extension path
+                const extensionPath = vscode.extensions.getExtension('JinyaoChen.intersystems-objectscript-class-diagram-view')?.extensionPath || 
+                                     path.dirname(path.dirname(__dirname));
+                
+                // Show diagram in web view
+                ClassDiagramPanel.createOrShow(extensionPath, svgFilePath, outputFileName);
+            }
+            
+            outputChannel.appendLine(`Class diagram generation complete!`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to generate class diagram for multiple classes: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
 } 

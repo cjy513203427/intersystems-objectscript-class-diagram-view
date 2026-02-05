@@ -150,4 +150,39 @@ ${relatedClassDefinitions}${this.generateClassDefinition(mainClass)}
 ${this.generateInheritanceRelations(classHierarchy)}
 @enduml`;
     }
+
+    /**
+     * Generates PlantUML diagram for multiple classes
+     * @param allClasses Array of all class information
+     * @param classHierarchy Map of class names to their superclasses
+     * @returns Complete PlantUML diagram
+     */
+    public static generatePlantUmlForDirectory(
+        allClasses: IClassInfo[], 
+        classHierarchy: Map<string, string[]>
+    ): string {
+        // Generate definitions for all classes
+        const classDefinitions = allClasses
+            .map(classInfo => this.generateClassDefinition(classInfo))
+            .join('');
+
+        return `@startuml
+!pragma diagramType class
+scale max 2000 width
+skinparam dpi 150
+skinparam nodesep 50
+skinparam ranksep 50
+set namespaceSeparator none
+hide empty members
+
+' Add click style for classes
+skinparam class {
+    BackgroundColor<<click>> White
+    BorderColor<<click>> Blue
+}
+
+${classDefinitions}
+${this.generateInheritanceRelations(classHierarchy)}
+@enduml`;
+    }
 } 
