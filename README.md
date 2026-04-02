@@ -2,6 +2,10 @@
 
 [English](README.md) | [中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
 
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/JinyaoChen.intersystems-objectscript-class-diagram-view)](https://marketplace.visualstudio.com/items?itemName=JinyaoChen.intersystems-objectscript-class-diagram-view)
+[![Visual Studio Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/JinyaoChen.intersystems-objectscript-class-diagram-view)](https://marketplace.visualstudio.com/items?itemName=JinyaoChen.intersystems-objectscript-class-diagram-view)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Visual Studio Code extension for generating UML class diagrams for InterSystems ObjectScript classes. This extension not only generates class diagrams but also provides interactive display and navigation features.
 
 ## Features
